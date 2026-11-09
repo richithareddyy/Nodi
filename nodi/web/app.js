@@ -165,6 +165,7 @@ const titles = {
   audit: "Activity",
 };
 function view(name) {
+  const changedView = currentView !== name;
   currentView = name;
   document
     .querySelectorAll(".view")
@@ -180,7 +181,9 @@ function view(name) {
   if (document.body.dataset.hosted === "true") $("connection").hidden = true;
   $("page-title").textContent = titles[name];
   updateGuide();
-  window.scrollTo({top:0,behavior:"instant"});
+  if (changedView || document.body.dataset.screen === "landing") {
+    window.scrollTo({top:0,behavior:"instant"});
+  }
 }
 document
   .querySelectorAll(".nav")
@@ -829,7 +832,6 @@ bind("start-sandbox", "click", startSandbox);
 bind("restart-sandbox", "click", startSandbox);
 function revealResult(target) {
   target.hidden = false;
-  target.scrollIntoView({block:"center", behavior:"instant"});
   target.focus({preventScroll:true});
 }
 function typingPause() {
@@ -890,7 +892,6 @@ function showInlineApproval() {
   $("inline-run").hidden = d.approval_status !== "approved" || d.expired;
   $("inline-approval-status").textContent = d.approval_status === "approved" ? "Signed. No money has been spent yet. Run it to recheck the limits and simulate the purchase." : "Approving does not spend money. Limits are checked again when you run it.";
   tick();
-  $("inline-approval").scrollIntoView({block:"center",behavior:"instant"});
 }
 bind("sandbox-block", "click", () => guidedPurchase("ultra"));
 bind("sandbox-review", "click", () => guidedPurchase("pro"));
