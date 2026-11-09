@@ -868,3 +868,8 @@ body[data-workspace="sandbox"] #sandbox-tour { margin-bottom:0; }
  body[data-workspace="sandbox"] #sandbox-tour .story-result { padding-top:4px; }
  body[data-workspace="sandbox"] #sandbox-tour .story-result::before { display:none; }
 }
+body[data-workspace="sandbox"]:has(#sandbox-tour:not([hidden])) main { padding-bottom:12px; }
+@media(min-width:1024px) {
+ body[data-workspace="sandbox"]:has(#sandbox-tour:not([hidden])) #demo-main,
+ body[data-workspace="sandbox"]:has(#sandbox-tour:not([hidden])) #demo-rail { max-height:calc(100dvh - 220px); }
+}
