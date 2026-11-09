@@ -211,13 +211,19 @@
         </section>
       </section>
       <section id="actions-view" class="view" hidden>
+        <div class="sandbox-intro">
+          <span class="release-pill"><span class="system-indicator" aria-hidden="true"></span> YOUR SANDBOX / NO REAL PURCHASES</span>
+          <h2>A little autonomy.<br /><em>You keep the final say.</em></h2>
+          <p>Give the agent a $300 monitor budget. Watch Nodi block an overspend, ask for your approval, and record the result.</p>
+        </div>
         <div id="demo-layout" class="demo-layout">
           <div id="demo-main">
             <section id="sandbox-tour" class="panel conversation" hidden aria-label="Guided agent conversation">
+              <div class="sandbox-window-bar"><span aria-hidden="true">● ● ●</span><span>nodi / mission control</span><span>SIMULATION</span></div>
               <ol id="demo-progress" class="demo-progress" aria-label="Demo progress">
                 <li id="progress-blocked">1 · Blocked</li><li id="progress-approved">2 · Approved</li><li id="progress-audited">3 · Audited</li>
               </ol>
-              <div class="story-heading"><span class="step">LIVE AGENT DEMO</span><button id="skip-demo" class="text-button">Skip to free explore</button></div>
+              <div class="story-heading"><span class="step">YOUR AGENT’S NEXT MOVE</span><button id="skip-demo" class="text-button">Skip to free explore</button></div>
               <div id="story-message" class="agent-message"><strong>Agent</strong><p id="agent-line">I found a studio monitor. Shall I try buying it?</p></div>
               <button id="sandbox-block">Try the studio monitor</button>
               <button id="sandbox-review" hidden>Try the productivity monitor</button>
