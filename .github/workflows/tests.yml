@@ -7,6 +7,8 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      HYPOTHESIS_PROFILE: nodi-ci
     strategy:
       matrix:
         python: ['3.11', '3.14']

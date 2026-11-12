@@ -35,4 +35,4 @@ Open http://127.0.0.1:8000. `init` creates separate administrator and agent cred
 
 Tests cover budget races, delegation, approval replay, expiry, and rollback. The [42 evaluation cases](nodi/data/cases.json) were developed alongside the code: they are regression checks, not an independent security benchmark. Intent scores are heuristic, not probabilities.
 
-[Detailed walkthrough and results](GUIDE.md) · [Architecture](docs/architecture.md) · [Security limits](SECURITY.md) · [Evaluation](docs/evaluation.md)
+[Generated invariant tests](docs/invariants.md) · [Detailed walkthrough and results](GUIDE.md) · [Architecture](docs/architecture.md) · [Security limits](SECURITY.md) · [Evaluation](docs/evaluation.md)
