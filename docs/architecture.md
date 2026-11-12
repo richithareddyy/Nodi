@@ -19,10 +19,13 @@ flowchart LR
 
 | Module | Responsibility |
 | --- | --- |
-| `models.py` | Strict contracts/actions and bounded mission drafting |
-| `tools.py` | Closed schemas, trusted catalog and exact destinations |
+| `models.py` | Strict contracts/actions, domain-specific vocabularies and legacy drafting entry point |
+| `domains/` | Registered procurement/research plugins: closed schemas, trusted metadata, preparation and intent |
+| `domain_types.py` | Shared preparation and intent result interfaces |
+| `policy_files.py` | Strict JSON compilation to ordinary exact-scope contracts |
+| `tools.py` | Compatibility imports for the original procurement adapter |
 | `policy.py` | Deterministic checks and delegation attenuation |
-| `intent.py` | Structured evaluator interface and procurement baseline |
+| `intent.py` | Domain-dispatched baseline and legacy evaluator imports |
 | `semantic.py` | Optional remote review that cannot relax the baseline |
 | `gateway.py` | Transactions, budgets, approvals, effects and audit |
 | `json_input.py` | Strict JSON validation before HTTP route processing |
@@ -59,3 +62,17 @@ SQLite is a local single-host ledger. Semantic review currently holds the writer
 All effects are database records in the same transaction. Real payments/messages require durable reservations or an outbox, provider idempotency, reconciliation and unknown-outcome handling. Replacing the insert with an HTTP call would invalidate the present atomicity guarantee.
 
 Operator list queries use read-only SQLite transactions and captured upper insertion bounds. They do not reserve the writer lock with BEGIN IMMEDIATE. In SQLite rollback-journal mode, an active read transaction can still delay a writer commit. Additive indexes are created on startup without rewriting existing audit events. See [pagination semantics](pagination.md).
+
+## Domain selection and policy compilation
+
+The stored canonical purpose selects a server-registered domain. Requests cannot
+load modules or select an alternative adapter. Preparation is pure and effect-free;
+all simulated effects still use the same transaction. Contracts validate tool and
+resource vocabularies per domain; changing purpose requires a new visa. Existing
+procurement contracts require no schema migration.
+
+Policy deny globs expand to concrete forbidden sets at compilation. Denies win over
+allows; existing exact-set checks and attenuation remain the enforcement path.
+Research uses offline fixture reads and reviewed summary records, not host I/O.
+See [domains and policy files](domains.md) for the compiler's bounds, defaults and
+tradeoffs. Real I/O, reservations and external effect recovery remain later phases.

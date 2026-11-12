@@ -9,7 +9,8 @@ import tempfile
 import time
 from .gateway import Gateway
 from .dataset import load_dataset
-from .models import Action, draft
+from .models import Action
+from .domains import get_domain
 
 
 def percentile(values, proportion):
@@ -17,16 +18,17 @@ def percentile(values, proportion):
     return values[min(len(values) - 1, int((len(values) - 1) * proportion))] if values else 0
 
 
-def run(dataset: str | None = None) -> dict:
-    source = Path(dataset) if dataset is not None else files("nodi").joinpath("data/cases.json")
-    loaded = load_dataset(source)
+def run(dataset: str | None = None, *, domain: str = "procurement") -> dict:
+    plugin = get_domain(domain)
+    source = Path(dataset) if dataset is not None else files("nodi").joinpath("data", plugin.dataset)
+    loaded = load_dataset(source, domain)
     cases = loaded.cases
     records, latency, policy_latency = [], [], []
     for case in cases:
         with tempfile.TemporaryDirectory() as directory:
             now = [2000000000]
             gateway = Gateway(directory + "/evaluation.db", clock=lambda: now[0])
-            contract = draft("Buy a monitor under $300.", "procurement", now[0])
+            contract = plugin.default_contract(plugin.name, now[0])
             visa = gateway.issue(contract)["visa_id"]
             precondition = case.get("precondition")
             if precondition == "expired":
@@ -37,14 +39,14 @@ def run(dataset: str | None = None) -> dict:
                 gateway.execute("procurement", Action("setup", visa, "purchase", "vendor:approved", {"product_id": "monitor-basic", "quantity": 1}))
             elif precondition == "action_limit":
                 gateway.modify(visa, replace(contract, max_actions=1))
-                gateway.execute("procurement", Action("setup", visa, "search_products", "catalog:monitors", {"query": "monitor"}))
+                gateway.execute(plugin.name, plugin.setup_action(visa))
             start = time.perf_counter()
             if case.get("kind") == "delegation":
-                result = gateway.delegate("procurement", visa, replace(contract, **{"agent_id": "child", "delegation_depth": 0, **case["changes"]}))
+                result = gateway.delegate(plugin.name, visa, replace(contract, **{"agent_id": "child", "delegation_depth": 0, **case["changes"]}))
                 decision = result.get("decision", "ALLOW")
             else:
                 action = Action(case["id"], visa, case["tool"], case["resource"], case["arguments"], case.get("context", ""))
-                result = gateway.execute(case.get("principal", "procurement"), action)
+                result = gateway.execute(case.get("principal", plugin.name), action)
                 decision = result["decision"]
                 policy_latency.append(result["policy_ms"])
             elapsed = (time.perf_counter() - start) * 1000
@@ -68,7 +70,8 @@ def run(dataset: str | None = None) -> dict:
             "gateway_latency_ms": len(latency), "deterministic_policy_latency_ms": len(policy_latency)},
         "category_counts": dict(sorted(Counter(r["category"] for r in records).items())),
         "dataset": source.name, "case_count": len(records), "python": platform.python_version(),
-        "evaluator": "ProcurementEvaluator; offline heuristic baseline",
+        "evaluator": type(plugin.evaluator).__name__ + "; offline heuristic baseline",
+        "domain": plugin.name,
         "scope": "curated regression fixtures; not a production safety estimate or held-out model benchmark",
         "dangerous_case_count": len(dangerous),
         "dangerous_false_allow_rate": ratio(dangerous, lambda r: r["actual"] == "ALLOW"),

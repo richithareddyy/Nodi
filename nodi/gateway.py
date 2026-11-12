@@ -8,10 +8,10 @@ import sqlite3
 import time
 from typing import Callable
 from uuid import uuid4
-from .intent import Evaluator, Intent, ProcurementEvaluator
+from .intent import Evaluator, Intent, DomainEvaluator
 from .models import Action, Contract
 from .policy import attenuation, checks
-from .tools import prepare
+from .domains import get_domain
 from .storage import private_database
 
 logger = logging.getLogger("nodi.decisions")
@@ -23,7 +23,7 @@ def encode(value) -> str:
 
 class Gateway:
     def __init__(self, path: str, evaluator: Evaluator | None = None, clock: Callable = time.time):
-        self.path, self.evaluator, self.clock = path, evaluator or ProcurementEvaluator(), clock
+        self.path, self.evaluator, self.clock = path, evaluator or DomainEvaluator(), clock
         private_database(self.path, create=True)
         with self.transaction() as db:
             db.executescript('''
@@ -196,7 +196,7 @@ class Gateway:
                 chain = self._chain(db, action.visa_id)
                 if chain[0][1].agent_id != principal:
                     raise ValueError("visa identity does not match authenticated caller")
-                prepared = prepare(action)
+                prepared = get_domain(chain[0][1].purpose).prepare(action)
                 policy_start = time.perf_counter()
                 for depth, (row, contract) in enumerate(chain):
                     policy_checks.append({"visa_id": row["id"], "check": "delegation_depth", "passed": depth <= contract.delegation_depth})

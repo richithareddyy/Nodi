@@ -27,8 +27,8 @@ def main():
                                 cwd=root, check=True, capture_output=True, text=True).stdout.strip()
         if not Path(origin).resolve().is_relative_to(environment.resolve()):
             raise RuntimeError('package resolved outside the clean environment')
-        def command(name):
-            result = subprocess.run([str(python), '-I', '-m', 'nodi', name], cwd=root,
+        def command(*arguments):
+            result = subprocess.run([str(python), '-I', '-m', 'nodi', *arguments], cwd=root,
                                     check=True, capture_output=True, text=True)
             return json.loads(result.stdout)
         evaluation = command('evaluate')
@@ -36,12 +36,28 @@ def main():
             expected_digest = hashlib.sha256(archive.read('nodi/data/cases.json')).hexdigest()
         if evaluation.get('dataset_sha256') != expected_digest:
             raise RuntimeError('installed evaluation used a different dataset')
+        research = command('evaluate', '--domain', 'research')
+        with zipfile.ZipFile(wheel) as archive:
+            research_digest = hashlib.sha256(archive.read('nodi/data/research_cases.json')).hexdigest()
+        if (research['dataset_sha256'] != research_digest or not research['cases'] or
+                any(case['actual'] != case['expected'] for case in research['cases'])):
+            raise RuntimeError('installed research evaluation failed')
+        policy = root / 'policy.json'
+        policy.write_text(json.dumps({
+            'mission': 'Research approved sources.', 'domain': 'research',
+            'allow': ['web.fetch'], 'deny': ['filesystem.*'],
+            'budget': {'max_usd': 0, 'max_transaction_usd': 0},
+            'delegation': {'max_depth': 0}, 'approval': {'purchase_above_usd': 0}, 'expires_in': '1h'}))
+        if not command('policy', 'validate', str(policy))['valid']:
+            raise RuntimeError('installed policy validation failed')
+        if command('policy', 'explain', str(policy))['contract']['allowed_tools'] != ['web.fetch']:
+            raise RuntimeError('installed policy compilation failed')
         demo = command('demo')
         if evaluation['case_count'] != 42 or evaluation['exact_decision_accuracy'] != 1:
             raise RuntimeError('installed evaluation failed')
         if [row['decision'] for row in demo] != ['ALLOW', 'ALLOW', 'DENY', 'ASK_HUMAN', 'ALLOW', 'DENY', 'DENY', 'DENY']:
             raise RuntimeError('installed demo failed')
-        print('Wheel installed outside checkout: 42 evaluation cases and all demo scenarios passed.')
+        print('Wheel installed outside checkout: procurement/research evaluations, policy CLI and all demo scenarios passed.')
 
 
 if __name__ == '__main__':

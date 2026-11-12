@@ -4,9 +4,9 @@ import re
 import time
 from typing import Any, Literal
 
+from .domains.procurement.metadata import TOOLS, RESOURCES
+
 Decision = Literal["ALLOW", "DENY", "ASK_HUMAN"]
-TOOLS = frozenset({"search_products", "compare_products", "purchase", "send_email", "upload_file"})
-RESOURCES = frozenset({"catalog:monitors", "vendor:approved", "file:employees.csv", "file:quote.pdf", "storage:external"})
 
 
 def integer(value: Any, name: str, minimum: int = 0) -> None:
@@ -38,13 +38,15 @@ class Contract:
     def __post_init__(self) -> None:
         text(self.agent_id, "agent_id", 100)
         text(self.mission, "mission")
-        if self.purpose != "monitor_procurement":
-            raise ValueError("only the reviewed monitor_procurement purpose is supported")
+        from .domains import get_domain
+        domain = get_domain(self.purpose)
+        if self.purpose != domain.purpose:
+            raise ValueError("contract purpose must be the domain's canonical purpose")
         for name in ("spending_limit", "maximum_transaction", "approval_threshold", "max_actions", "delegation_depth", "expires_at"):
             integer(getattr(self, name), name)
         if self.delegation_depth > 8 or self.max_actions < 1:
             raise ValueError("invalid delegation depth or action count")
-        for name, vocabulary in (("allowed_tools", TOOLS), ("forbidden_operations", TOOLS), ("allowed_resources", RESOURCES), ("forbidden_resources", RESOURCES)):
+        for name, vocabulary in (("allowed_tools", domain.tools), ("forbidden_operations", domain.tools), ("allowed_resources", domain.resources), ("forbidden_resources", domain.resources)):
             values = getattr(self, name)
             if type(values) is not list or any(type(v) is not str for v in values) or not set(values) <= vocabulary or len(values) != len(set(values)):
                 raise ValueError(f"invalid {name}")
@@ -56,14 +58,9 @@ class Contract:
 
 
 def draft(mission: str, agent_id: str, now: int | None = None) -> Contract:
-    """Deliberately bounded parser: rejects unsupported missions instead of guessing."""
-    match = re.fullmatch(r"(?:Buy|Purchase|Find and purchase) (?:a )?monitor under \$(\d{1,6})(?:\.(\d{2}))?\.?", mission, re.I)
-    if not match:
-        raise ValueError('supported draft: "Buy a monitor under $300."; review the returned contract before issuing')
-    cents = int(match[1]) * 100 + int(match[2] or 0)
-    return Contract(agent_id=agent_id, mission=mission, spending_limit=cents,
-                    maximum_transaction=cents, approval_threshold=min(cents, 25000),
-                    expires_at=(int(time.time()) if now is None else now) + 3600)
+    """Compatibility entry point for the original monitor drafting grammar."""
+    from .domains.procurement.contracts import draft as procurement_draft
+    return procurement_draft(mission, agent_id, now)
 
 
 @dataclass(frozen=True)

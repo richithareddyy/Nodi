@@ -2,7 +2,7 @@
 
 You ask an AI agent to buy a monitor within a budget. What stops it from overspending, sharing unrelated files, or giving another agent more permission than it has? Nodi checks each proposed tool action against limits you set for the task, then allows it, blocks it, or asks for your approval.
 
-**[Try the sandbox](https://nodi-7fsc.onrender.com/)** — the free instance may take a moment to wake up. Tools are simulated, and the intent check currently covers monitor procurement. This is a prototype, not a general defense against prompt injection.
+**[Try the sandbox](https://nodi-7fsc.onrender.com/)** — the free instance may take a moment to wake up. Tools are simulated. The browser demo covers monitor procurement; the backend also supports a bounded research domain. This is a prototype, not a general defense against prompt injection.
 
 ## What gets checked
 
@@ -30,6 +30,20 @@ python -m nodi serve
 ```
 
 Open http://127.0.0.1:8000. `init` creates separate administrator and agent credentials in `.nodi.local.json`; keep that file private.
+
+## Domain policies
+
+Compile a reviewed JSON policy without issuing authority:
+
+```sh
+python -m nodi policy validate examples/policies/research.json
+python -m nodi policy explain examples/policies/research.json
+python -m nodi evaluate --domain research
+```
+
+[Domains and policy files](docs/domains.md) explains scopes, deny patterns, and the
+existing administrator issuance workflow. Research web/file tools use offline
+fixtures and simulated writes; they do not access the network or host filesystem.
 
 ## What the tests establish
 

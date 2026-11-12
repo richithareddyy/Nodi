@@ -1,0 +1,26 @@
+{
+  "mission": "Buy a monitor under $300.",
+  "domain": "procurement",
+  "agent_id": "procurement",
+  "allow": [
+    "web.search",
+    "product.lookup",
+    "purchase"
+  ],
+  "deny": [
+    "upload_file",
+    "filesystem.*",
+    "shell.*"
+  ],
+  "budget": {
+    "max_usd": 300,
+    "max_transaction_usd": 300
+  },
+  "delegation": {
+    "max_depth": 2
+  },
+  "approval": {
+    "purchase_above_usd": 250
+  },
+  "expires_in": "2h"
+}

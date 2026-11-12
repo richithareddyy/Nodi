@@ -39,3 +39,14 @@ Supported preconditions are `expired`, `revoked`, `budget_spent` and `action_lim
 New reports include `report_schema_version: 1` and `dataset_sha256`, the SHA-256 of the exact input bytes read for validation and evaluation. Renaming an unchanged dataset preserves its digest; whitespace-only changes alter it. The digest identifies input content, not correctness, authorship or a trusted publication date. It is not a signature and does not identify the implementation revision; retain the source commit and dependency lock alongside reports.
 
 `metric_sample_counts` names the sample count for each rate and timing statistic, while `category_counts` records the exact category distribution. A zero denominator corresponds to a `null` rate, not a measured zero failure rate. Policy-loop timing counts action cases only; delegation-only datasets have zero policy samples and null policy timing. Existing top-level metrics remain available. Older archived reports without these new fields remain historical records rather than being retrospectively assigned provenance.
+
+## Domain datasets
+
+`python -m nodi evaluate` continues to run the unchanged procurement dataset.
+`python -m nodi evaluate --domain research` selects the separately packaged research
+fixtures and their default contract. `--dataset` can supply a custom fixture file
+for the selected domain; validation still happens before gateway creation. The
+procurement-only `budget_spent` precondition is rejected for research. Reports add
+an explicit `domain` field and use the selected baseline's name. Existing metrics
+and their regression-only interpretation remain unchanged. Both domains are
+checked by CI and by the installed-wheel script outside the source checkout.

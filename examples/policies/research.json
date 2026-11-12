@@ -1,0 +1,32 @@
+{
+  "mission": "Research Python and SQLite; summarize approved sources.",
+  "domain": "research",
+  "agent_id": "research",
+  "allow": [
+    "web.fetch",
+    "filesystem.read",
+    "filesystem.write"
+  ],
+  "deny": [
+    "shell.*"
+  ],
+  "resources": {
+    "allow": [
+      "web:docs.python.org",
+      "workspace:notes/source.txt",
+      "workspace:summaries/summary.txt"
+    ],
+    "deny": []
+  },
+  "budget": {
+    "max_usd": 0,
+    "max_transaction_usd": 0
+  },
+  "delegation": {
+    "max_depth": 2
+  },
+  "approval": {
+    "purchase_above_usd": 0
+  },
+  "expires_in": "2h"
+}

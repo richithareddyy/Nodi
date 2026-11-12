@@ -7,7 +7,7 @@ or credentials are exposed to the agent.
 import json
 from urllib.parse import urlsplit
 from urllib.request import Request, build_opener, HTTPRedirectHandler
-from .intent import Intent, ProcurementEvaluator
+from .intent import Intent, DomainEvaluator
 
 
 class NoRedirect(HTTPRedirectHandler):
@@ -23,7 +23,7 @@ class SemanticReviewer:
         if not bearer_token or not 0 < timeout <= 5:
             raise ValueError("semantic service requires a credential and bounded timeout")
         self.endpoint, self.token, self.timeout = endpoint, bearer_token, timeout
-        self.baseline = ProcurementEvaluator()
+        self.baseline = DomainEvaluator()
         self.opener = build_opener(NoRedirect())
 
     def evaluate(self, contract, action, prepared) -> Intent:

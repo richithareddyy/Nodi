@@ -1,6 +1,6 @@
 """Pure deterministic checks, evaluated for the entire delegation chain."""
 from .models import Action, Contract
-from .tools import Prepared
+from .domain_types import Prepared
 
 
 def checks(contract: Contract, status: str, spent: int, actions: int,

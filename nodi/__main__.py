@@ -8,10 +8,14 @@ import sys
 
 
 def main():
+    if sys.argv[1:2] == ["policy"]:
+        from .policy_files import main as policy_main
+        return policy_main(sys.argv[2:])
     parser = argparse.ArgumentParser(prog="nodi")
     parser.add_argument("command", choices=["init", "serve", "demo", "evaluate"])
     parser.add_argument("--config", default=".nodi.local.json")
     parser.add_argument("--port", type=int, default=8000)
+    parser.add_argument("--domain", choices=["procurement", "research"], default="procurement")
     parser.add_argument("--dataset", help="Custom evaluation JSON; defaults to the bundled regression dataset")
     parser.add_argument("--output")
     args = parser.parse_args()
@@ -42,7 +46,7 @@ def main():
     else:
         from .evaluation import run
         try:
-            result = run(args.dataset)
+            result = run(args.dataset, domain=args.domain)
         except (ValueError, OSError):
             print("Evaluation dataset could not be loaded or validated; no report written.", file=sys.stderr)
             raise SystemExit(2) from None

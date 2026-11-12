@@ -20,6 +20,9 @@ jobs:
       - run: python -m pip install -e '.[test,mcp]' -c requirements.lock
       - run: python -m pytest -q
       - run: python -m nodi evaluate
+      - run: python -m nodi evaluate --domain research
+      - run: python -m nodi policy validate examples/policies/procurement.json
+      - run: python -m nodi policy validate examples/policies/research.json
       - run: python -m nodi demo
       - run: python -m pip wheel . --no-deps --wheel-dir dist
       - run: python scripts/check_wheel.py dist/nodi-0.1.0-py3-none-any.whl

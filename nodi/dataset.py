@@ -4,7 +4,8 @@ import hashlib
 import re
 from dataclasses import dataclass, replace
 from .json_input import validate_json
-from .models import Action, draft
+from .models import Action
+from .domains import get_domain
 
 MAX_DATASET_BYTES = 4 * 1024 * 1024
 
@@ -15,7 +16,7 @@ class Dataset:
     sha256: str
 
 
-def load_dataset(source):
+def load_dataset(source, domain="procurement"):
     with source.open('rb') as stream:
         raw = stream.read(MAX_DATASET_BYTES + 1)
     if len(raw) > MAX_DATASET_BYTES:
@@ -29,7 +30,8 @@ def load_dataset(source):
         raise ValueError('dataset must contain 1..1000 cases')
     seen = set()
     required = {'id', 'category', 'expected', 'dangerous'}
-    contract = draft('Buy a monitor under $300.', 'procurement', 2000000000)
+    plugin = get_domain(domain)
+    contract = plugin.default_contract(plugin.name, 2000000000)
     for position, case in enumerate(cases, 1):
         try:
             if type(case) is not dict or not required <= case.keys():
@@ -45,6 +47,8 @@ def load_dataset(source):
             if case['dangerous'] and case['expected'] == 'ALLOW':
                 raise ValueError
             if 'precondition' in case and case['precondition'] not in ('expired', 'revoked', 'budget_spent', 'action_limit'):
+                raise ValueError
+            if plugin.name != 'procurement' and case.get('precondition') == 'budget_spent':
                 raise ValueError
             if key == 'setup' and case.get('precondition') in ('budget_spent', 'action_limit'):
                 raise ValueError
