@@ -13,6 +13,7 @@ from .models import Action, Contract
 from .policy import attenuation, checks
 from .domains import get_domain
 from .storage import private_database
+from . import outbox_store
 
 logger = logging.getLogger("nodi.decisions")
 
@@ -22,9 +23,13 @@ def encode(value) -> str:
 
 
 class Gateway:
-    def __init__(self, path: str, evaluator: Evaluator | None = None, clock: Callable = time.time, *, backend=None):
+    def __init__(self, path: str, evaluator: Evaluator | None = None, clock: Callable = time.time, *, backend=None, payment_provider=None):
         self.path, self.evaluator, self.clock = path, evaluator or DomainEvaluator(), clock
-        self.backend = backend
+        self.backend, self.payment_provider = backend, payment_provider
+        if payment_provider is not None:
+            from pathlib import Path
+            if Path(self.path).resolve() == Path(payment_provider.path).resolve():
+                raise ValueError("provider and authorization databases must be separate")
         private_database(self.path, create=True)
         with self.transaction() as db:
             db.executescript('''
@@ -45,6 +50,11 @@ class Gateway:
                     sequence INTEGER PRIMARY KEY AUTOINCREMENT, event TEXT NOT NULL,
                     previous_hash TEXT NOT NULL, event_hash TEXT NOT NULL);
             ''')
+            db.executescript(outbox_store.SCHEMA)
+            if payment_provider is not None and db.execute(
+                    "SELECT 1 FROM outbox WHERE state IN ('PENDING','UNKNOWN') AND provider_id != ? LIMIT 1",
+                    (payment_provider.identity,)).fetchone():
+                raise ValueError("unresolved payments require the original provider store")
 
     @contextmanager
     def transaction(self):
@@ -143,6 +153,7 @@ class Gateway:
     def revoke(self, visa_id: str) -> None:
         with self.transaction() as db:
             self._chain(db, visa_id)
+            outbox_store.cancel_pending(self, db, visa_id)
             db.execute("UPDATE visas SET status='revoked' WHERE id=?", (visa_id,))
             invalidated = self._invalidate_reviews(db, visa_id)
             self._audit(db, {"event": "visa_revoked", "visa_id": visa_id, "invalidated_reviews": invalidated})
@@ -156,6 +167,10 @@ class Gateway:
                 raise ValueError("issue a new visa to change identity or mission")
             if len(chain) > 1:
                 attenuation(chain[1][1], contract)
+            outbox_store.cancel_pending(self, db, visa_id)
+            money, actions = outbox_store.reserved(db, visa_id)
+            if money and (contract.spending_limit < chain[0][0]["spent"] + money or contract.max_actions < chain[0][0]["actions"] + actions):
+                raise ValueError("cannot lower caps below committed and uncertain reserved usage")
             db.execute("UPDATE visas SET contract=? WHERE id=?", (encode(contract.dictionary()), visa_id))
             invalidated = self._invalidate_reviews(db, visa_id)
             self._audit(db, {"event": "visa_modified", "visa_id": visa_id, "before": old.dictionary(),
@@ -199,11 +214,14 @@ class Gateway:
                     raise ValueError("visa identity does not match authenticated caller")
                 if chain[0][1].purpose == "sandbox_readonly" and self.backend is None:
                     raise ValueError("Docker read-only backend is not enabled")
+                if chain[0][1].purpose == "mock_payment" and self.payment_provider is None:
+                    raise ValueError("mock payment outbox is not enabled")
                 prepared = get_domain(chain[0][1].purpose).prepare(action)
                 policy_start = time.perf_counter()
                 for depth, (row, contract) in enumerate(chain):
                     policy_checks.append({"visa_id": row["id"], "check": "delegation_depth", "passed": depth <= contract.delegation_depth})
-                    policy_checks.extend({"visa_id": row["id"], **check} for check in checks(contract, row["status"], row["spent"], row["actions"], action, prepared, now))
+                    reserved_money, reserved_actions = outbox_store.reserved(db, row["id"])
+                    policy_checks.extend({"visa_id": row["id"], **check} for check in checks(contract, row["status"], row["spent"] + reserved_money, row["actions"] + reserved_actions, action, prepared, now))
                 policy_ms = (time.perf_counter() - policy_start) * 1000
                 failures = [p["check"] for p in policy_checks if not p["passed"]]
                 if failures:
@@ -247,7 +265,10 @@ class Gateway:
                         "intent": intent.dictionary() if intent else None,
                         "human_intervention": approved, "estimated_impact": prepared.impact if prepared else None,
                         "cost_cents": prepared.cost if prepared else None, "policy_ms": round(policy_ms, 4)}
-            if decision == "ALLOW":
+            queued = decision == "ALLOW" and chain[0][1].purpose == "mock_payment"
+            if queued:
+                outbox_store.enqueue(self, db, principal, action, prepared, chain, approved, deadline, response)
+            elif decision == "ALLOW":
                 effect_id = uuid4().hex
                 if chain[0][1].purpose == "sandbox_readonly":
                     from .execution.docker import ExecutionError
@@ -264,8 +285,9 @@ class Gateway:
                     db.execute("UPDATE visas SET spent=spent+?, actions=actions+1 WHERE id=?", (prepared.cost, row["id"]))
                 response.update({"effect_id": effect_id, "result": result})
             if chain and chain[0][1].agent_id == principal:
-                remaining = min(c.spending_limit - row["spent"] for row, c in chain)
-                response["remaining_budget_cents"] = max(0, remaining - (prepared.cost if decision == "ALLOW" else 0))
+                remaining = min(c.spending_limit - db.execute("SELECT spent FROM visas WHERE id=?", (row["id"],)).fetchone()[0]
+                                - outbox_store.reserved(db, row["id"])[0] for row, c in chain)
+                response["remaining_budget_cents"] = max(0, remaining)
             state = "pending" if decision == "ASK_HUMAN" else "completed"
             if decision == "ASK_HUMAN":
                 response["approval_deadline"] = deadline
@@ -280,8 +302,12 @@ class Gateway:
     def snapshot(self) -> dict:
         with self.transaction() as db:
             return {
-                "visas": [{**dict(r), "contract": json.loads(r["contract"])} for r in db.execute("SELECT * FROM visas ORDER BY issued_at,id")],
+                "visas": [{**dict(r), "reserved_cents": outbox_store.reserved(db, r["id"])[0],
+                           "reserved_actions": outbox_store.reserved(db, r["id"])[1], "contract": json.loads(r["contract"])} for r in db.execute("SELECT * FROM visas ORDER BY issued_at,id")],
                 "approvals": [{**dict(r), "action": json.loads(r["action"]), "response": json.loads(r["response"])} for r in db.execute("SELECT * FROM requests WHERE approval IN ('pending','approved')")],
+                **({"outbox": [dict(r) for r in db.execute("SELECT * FROM outbox ORDER BY id")],
+                    "reservations": [dict(r) for r in db.execute("SELECT * FROM reservations ORDER BY outbox_id,visa_id")]}
+                   if self.payment_provider is not None else {}),
                 "effects": [dict(r) for r in db.execute("SELECT * FROM effects")],
                 "audit": [{**dict(r), "event": json.loads(r["event"])} for r in db.execute("SELECT * FROM audit ORDER BY sequence")],
             }

@@ -5,8 +5,7 @@ The default gateway, existing procurement/research contracts, and public browser
 sandbox remain simulations. An existing simulated visa never starts doing real I/O
 when Docker is enabled. Real-domain requests fail closed when the backend is absent.
 
-**No real writes are implemented.** Phase 4's reservation/outbox and reconciliation
-are prerequisites for effects that cannot roll back. There is no payment, file-write,
+**No real writes are implemented.** The [Phase 4 outbox](outbox.md) demonstrates reservation/reconciliation with a mock payment provider; it does not add a filesystem-write adapter. Crash recovery remains a prerequisite for effects that cannot roll back. There is no payment, file-write,
 SQL mutation, arbitrary command, or general browsing endpoint in this backend.
 
 ## Execution boundary
@@ -186,7 +185,7 @@ but cannot undo a completed read. Retrying the same request after such failure m
 repeat it. GETs may leave access logs or trigger behavior on a misconfigured server;
 only reviewed static documentation destinations are permitted. No exactly-once or
 atomic-external-execution claim is made. The implementation does not reserve budget,
-retry unknown irreversible outcomes or provide the Phase 4 outbox.
+retry unknown irreversible outcomes or use the separate mock-payment outbox.
 
 ## Reproducible checks
 

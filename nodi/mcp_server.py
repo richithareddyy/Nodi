@@ -22,6 +22,19 @@ class GatewayCallError(RuntimeError):
     """Sanitized transport failure; never invent an authorization decision."""
 
 
+def execution_consistent(result):
+    if type(result.get('executed')) is not bool:
+        return False
+    if 'execution_state' not in result:
+        return result['executed'] == (result.get('decision') == 'ALLOW')
+    state = result['execution_state']
+    return (type(state) is str and state in ('PENDING', 'UNKNOWN', 'COMMITTED', 'FAILED')
+            and result.get('decision') == 'ALLOW'
+            and result['executed'] == (state == 'COMMITTED')
+            and type(result.get('outbox_id')) is str
+            and re.fullmatch(r'[a-f0-9]{32}', result['outbox_id']) is not None)
+
+
 class GatewayClient:
     def __init__(self, base_url: str, agent_token: str, *, transport=None):
         origin = gateway_origin(base_url)
@@ -60,7 +73,7 @@ class GatewayClient:
             result = json.loads(data)
             if (not isinstance(result, dict) or result.get("decision") not in ("ALLOW", "DENY", "ASK_HUMAN")
                     or type(result.get("executed")) is not bool
-                    or result["executed"] != (result["decision"] == "ALLOW")
+                    or not execution_consistent(result)
                     or result.get("request_id") != action.request_id
                     or result.get("visa_id") != action.visa_id):
                 raise ValueError("invalid decision response")
@@ -95,7 +108,7 @@ class GatewayClient:
                 raise ValueError("unbound stored response")
             decision = last.get("decision")
             if (decision not in ("ALLOW", "DENY", "ASK_HUMAN") or type(last.get("executed")) is not bool
-                    or last["executed"] != (decision == "ALLOW")
+                    or not execution_consistent(last)
                     or (state == "completed") != (decision != "ASK_HUMAN")):
                 raise ValueError("invalid stored response")
             if not isinstance(result.get("fingerprint"), str) or not re.fullmatch(r"[a-f0-9]{64}", result["fingerprint"]):
@@ -117,6 +130,7 @@ class GatewayClient:
 def create_mcp(client: GatewayClient) -> MCPServer:
     server = MCPServer("Nodi", instructions=(
         "Submit protected actions through execute_action. DENY and ASK_HUMAN do not execute. "
+        "For outbox payments, ALLOW is authorization only; inspect execution_state and executed for confirmation. "
         "Only a human administrator can approve via the separate HTTP control API. "
         "On transport failure, outcome is unknown; inspect with get_request_status or retry the identical request_id and action. "
         "Never assume a failed response means the effect did not occur."))

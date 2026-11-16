@@ -1,6 +1,7 @@
 """Bounded operator reads using keyset pagination and a captured upper bound."""
 import json
 from .gateway import Gateway
+from .outbox_store import reserved
 
 MAX_CURSOR = 2**63 - 1
 
@@ -88,9 +89,11 @@ class ReadModel:
             now = int(self.gateway.clock())
             nodes, blockers = [], []
             for depth, (row, contract) in enumerate(chain):
+                money, actions = reserved(db, row["id"])
                 node = {**dict(row), "contract": contract.dictionary(), "depth_from_leaf": depth,
-                        "remaining_budget_cents": max(0, contract.spending_limit - row["spent"]),
-                        "remaining_actions": max(0, contract.max_actions - row["actions"]),
+                        "reserved_cents": money, "reserved_actions": actions,
+                        "remaining_budget_cents": max(0, contract.spending_limit - row["spent"] - money),
+                        "remaining_actions": max(0, contract.max_actions - row["actions"] - actions),
                         "expired": now >= contract.expires_at}
                 nodes.append(node)
                 for failed, reason in ((row["status"] != "active", "inactive"),

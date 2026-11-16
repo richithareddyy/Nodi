@@ -13,7 +13,7 @@ A temporary “mission contract” sets the allowed tools, resources, budget, an
 - Prices and destinations come from the tool adapter, not claims supplied by the agent.
 - Each simulated action, budget update, and audit entry is saved in one SQLite transaction. They either all succeed or all roll back.
 
-Built with **Python, FastAPI, and SQLite**, with an optional MCP bridge and opt-in Docker read-only tools. Real payments would need additional handling: a database transaction cannot undo a payment made through an external API.
+Built with **Python, FastAPI, and SQLite**, with an optional MCP bridge and opt-in Docker read-only tools. A reservation/outbox flow demonstrates crash recovery with a durable mock payment provider; no real-money processor is connected.
 
 ## Run locally
 
@@ -51,7 +51,21 @@ The optional [Docker backend](docs/sandbox-execution.md) adds workspace file rea
 restricted SQLite SELECT queries, fixed diagnostic commands, and approved HTTPS
 GETs through a private egress proxy. Enable it explicitly with a separate `sandbox`
 mission. Existing simulations and the public website keep their current behavior.
-Real writes are deferred until the crash-safe outbox phase.
+Real filesystem writes remain disabled; the outbox milestone currently covers mock payments.
+
+## Crash-safe mock payments
+
+An opt-in `payments` mission reserves shared budget before queuing a charge. A
+worker uses a persistent idempotency key; uncertain outcomes keep their reservation
+until provider reconciliation confirms success or failure. Authorization and payment
+completion are reported separately. [Setup and recovery semantics](docs/outbox.md).
+
+```sh
+python -m nodi.outbox_demo
+```
+
+The demo loses a mock success response and recovers without another charge. It uses
+local temporary stores and never moves real money.
 
 ## What the tests establish
 

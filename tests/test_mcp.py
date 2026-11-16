@@ -152,3 +152,36 @@ def test_real_stdio_to_http_approval_replay_and_revocation(tmp_path):
     finally:
         process.terminate()
         process.wait(timeout=10)
+
+
+@pytest.mark.parametrize('state,executed', [('PENDING', False), ('UNKNOWN', False), ('FAILED', False), ('COMMITTED', True)])
+def test_outbox_authorization_is_not_reported_as_execution(state, executed):
+    result = {'request_id': 'one', 'visa_id': 'v', 'decision': 'ALLOW', 'executed': executed,
+              'execution_state': state, 'outbox_id': 'a' * 32}
+    transport = httpx2.MockTransport(lambda _: httpx2.Response(200, json=result))
+    client = GatewayClient('https://gateway.example', TOKEN, transport=transport)
+    assert asyncio.run(client.execute(action())) == result
+
+
+@pytest.mark.parametrize('extra', [
+    {'execution_state': 'PENDING', 'executed': True, 'outbox_id': 'a' * 32},
+    {'execution_state': 'UNKNOWN', 'executed': False},
+    {'execution_state': 'COMMITTED', 'executed': False, 'outbox_id': 'a' * 32},
+    {'execution_state': [], 'executed': False, 'outbox_id': 'a' * 32},
+])
+def test_invalid_outbox_confirmation_rejected(extra):
+    result = {'request_id': 'one', 'visa_id': 'v', 'decision': 'ALLOW', **extra}
+    transport = httpx2.MockTransport(lambda _: httpx2.Response(200, json=result))
+    with pytest.raises(GatewayCallError):
+        asyncio.run(GatewayClient('https://gateway.example', TOKEN, transport=transport).execute(action()))
+
+
+def test_mcp_status_preserves_pending_execution_state():
+    result = {'request_id': 'one', 'state': 'completed', 'fingerprint': 'b' * 64,
+              'last_response': {'request_id': 'one', 'visa_id': 'v', 'decision': 'ALLOW', 'executed': False,
+                                'execution_state': 'UNKNOWN', 'outbox_id': 'a' * 32},
+              'review_deadline': None, 'server_time': 1000, 'review_expired': False}
+    transport = httpx2.MockTransport(lambda _: httpx2.Response(200, json=result))
+    from nodi.mcp_server import StatusRequest
+    status = asyncio.run(GatewayClient('https://gateway.example', TOKEN, transport=transport).status(StatusRequest(request_id='one')))
+    assert status['found'] and not status['last_response']['executed']

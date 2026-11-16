@@ -143,7 +143,7 @@ def create_app(gateway: Gateway, admin_token: str, agent_tokens: dict[str, str])
 
     @app.get("/health")
     def health():
-        return {"status": "ok", "mode": "simulation+sandbox-readonly" if gateway.backend else "simulation"}
+        return {"status": "ok", "mode": "simulation" + ("+sandbox-readonly" if gateway.backend else "") + ("+mock-payments" if gateway.payment_provider else "")}
 
     @app.post("/drafts", dependencies=[Depends(admin)])
     def draft_contract(body: MissionDraft):
@@ -241,4 +241,6 @@ def from_environment() -> FastAPI:
         raise RuntimeError("Set NODI_ADMIN_TOKEN and NODI_AGENT_TOKENS before startup") from exc
     from .execution.docker import from_config
     backend = from_config(json.loads(os.environ["NODI_SANDBOX"]) if "NODI_SANDBOX" in os.environ else None)
-    return create_app(Gateway(os.environ.get("NODI_DB", "nodi.db"), backend=backend), admin_token, agents)
+    from .mock_payments import from_config as payment_config
+    provider = payment_config(json.loads(os.environ["NODI_MOCK_PAYMENTS"]) if "NODI_MOCK_PAYMENTS" in os.environ else None)
+    return create_app(Gateway(os.environ.get("NODI_DB", "nodi.db"), backend=backend, payment_provider=provider), admin_token, agents)

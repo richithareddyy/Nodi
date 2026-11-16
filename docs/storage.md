@@ -17,3 +17,9 @@ chmod 600 nodi.db
 Apply owner-only permissions to any existing SQLite sidecars as well, after inspecting them. Do not delete journal or WAL files to bypass a check: they may be necessary for recovery. Do not change unrelated files, follow unexpected links or discard the ledger. Keep backups private too. Once the files satisfy the checks, the existing schema and records remain usable without conversion.
 
 The regression suite verifies that SQLite's rollback journal inherits private database permissions. WAL creation, network filesystems, extended ACL configurations and Windows ACLs have not been validated. Git ignores the standard `.db` file and journal/WAL/shared-memory suffixes; choose private paths and never rely on ignore patterns as access control.
+
+An optional journal can be unlinked by SQLite between the validation open and
+`fstat`. In that case validation reopens the path and fully checks any replacement,
+with a bounded retry count. The main database, multiply linked files, symlinks,
+unsafe modes and ownership mismatches remain rejected. The independent mock payment
+provider uses these same file checks; keep it distinct from the authorization ledger.

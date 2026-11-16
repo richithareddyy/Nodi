@@ -18,7 +18,7 @@ An explicitly configured semantic service receives mission/action/context. Use a
 
 Audit data contains arguments/context and is not encrypted at the application layer. The gateway creates database files with mode 0600 and checks POSIX ownership, permissions, file type and link count before each connection, including existing SQLite journal/WAL sidecars. Protect host storage and backups. A privileged attacker can rewrite or truncate the local hash chain; it is not an externally anchored ledger.
 
-There are no real payments, MCP Streamable HTTP endpoint, arbitrary shell commands/tool URLs, or general-purpose agents. An explicitly enabled Docker backend supports only bounded real reads; writes require the future outbox design. The research domain simulates allowlisted web/file reads and summary writes using fixture data and transactional records only. The optional MCP stdio bridge uses an agent-only credential to call the HTTP gateway; it does not add an authorization bypass or an OS sandbox. Regression tests cannot prove containment for tools that do not exist.
+There are no real payments, MCP Streamable HTTP endpoint, arbitrary shell commands/tool URLs, or general-purpose agents. An explicitly enabled Docker backend supports only bounded real reads; filesystem writes remain disabled. The separate mock-payment domain uses a reservation/outbox flow, without a real-money processor. The research domain simulates allowlisted web/file reads and summary writes using fixture data and transactional records only. The optional MCP stdio bridge uses an agent-only credential to call the HTTP gateway; it does not add an authorization bypass or an OS sandbox. Regression tests cannot prove containment for tools that do not exist.
 
 Before connecting real services, add verified workload identity, provider credentials held only by the gateway, egress isolation, versioned adapter schemas, confirmed costs, reservations/reconciliation, authenticated human sessions, tenant boundaries, rate limits, observability and independent adversarial review.
 
@@ -51,3 +51,21 @@ retry can repeat it, and GETs can leave remote access logs. No external atomicit
 exactly-once guarantee is claimed. The shared writer lock is held during the read;
 this is not a throughput or denial-of-service solution. No real writes are enabled.
 See [setup, restrictions and regression checks](docs/sandbox-execution.md).
+
+## Mock payment outbox
+
+Authorized payments reserve shared ancestor budgets/action slots before dispatch.
+The durable worker rechecks current authority before granting an external dispatch,
+then calls the independent mock provider outside the ledger transaction. Provider
+idempotency keys bind exact payloads. Unknown outcomes retain reservations until
+lookup and, when necessary, fenced cancellation establish a terminal result.
+A late response or expired worker lease cannot release or consume a hold twice.
+
+Dispatch is the commitment point: later revocation/expiry cannot retroactively undo
+an already accepted provider operation. Pending work is cancelled on edits or
+revocation; unknown work is reconciled, never blindly treated as failure. The mock
+provides permanent idempotency records and atomic cancellation tombstones. A real
+provider must supply equivalent guarantees or retain uncertainty; no production
+payment connector is implemented. Provider/gateway databases and the worker are
+trusted, private operator components, not agent tools. See [recovery semantics and
+validation](docs/outbox.md).

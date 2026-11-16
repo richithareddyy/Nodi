@@ -58,3 +58,13 @@ real execution does not turn simulated evaluation cases into empirical live-tool
 results. See [reproduction commands and scope](sandbox-execution.md#reproducible-checks).
 CI runs actual container tests; the public HTTPS smoke check is explicitly opt-in.
 These tests establish regression behavior, not statistical security rates.
+
+## Crash-recovery checks
+
+`python -m nodi.outbox_demo` emits observed states and call counts for one durable
+mock-provider lost-response scenario. `tests/test_outbox.py` adds actual process
+termination, duplicate deliveries, reservation races, cancellation fencing and
+provider-outage tests. `tests/test_outbox_invariants.py` generates stateful traces
+and compares the independent provider history against each ancestor's ledger spend
+and holds. These do not alter the original procurement/research datasets or imply
+production failure probabilities; see [outbox scope](outbox.md).

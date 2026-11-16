@@ -95,3 +95,17 @@ profile disables that database and enables deterministic generation. Hypothesis
 shrinks a failure and prints its reproducing sequence. Stop on a genuine invariant
 violation, retain that minimal example, and review the enforcement fix before
 continuing later phases. Do not weaken an invariant to obtain a passing run.
+
+## Outbox extension
+
+Phase 4 adds `tests/test_outbox_invariants.py` using the same Hypothesis profiles.
+Generated payment trees, actions, reviews, retries, faults, time advances and
+lifecycle changes compare provider charges with committed spend plus reservations
+for every ancestor. Terminal operations have no holds; unresolved operations retain
+exact ancestor holds. The test reconstructs visa history to check each durable
+dispatch grant and verifies the audit chain after every transition. Separate process
+crash and race tests cover the provider/local-commit gap and cancellation fencing.
+
+For external operations, dispatch authorization and later settlement are distinct.
+An already-dispatched operation may settle after revocation or expiry; settlement
+records an earlier grant, not renewed authority. See [outbox semantics](outbox.md).

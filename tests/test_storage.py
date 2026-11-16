@@ -93,3 +93,26 @@ def test_wrong_owner_rejected(tmp_path, monkeypatch):
     Gateway(str(path))
     monkeypatch.setattr(os, 'getuid', lambda: path.stat().st_uid + 1)
     with pytest.raises(UnsafeStoreError): private_database(path)
+
+
+@pytest.mark.parametrize('replacement', [False, True])
+def test_unlinked_optional_journal_reopens_and_validates_replacement(tmp_path, monkeypatch, replacement):
+    from nodi.storage import _check
+    sidecar = tmp_path / 'ledger.db-journal'
+    sidecar.write_bytes(b'journal')
+    sidecar.chmod(0o600)
+    original = os.fstat
+    first = [True]
+    def race(fd):
+        if first[0]:
+            first[0] = False
+            sidecar.unlink()
+            if replacement:
+                sidecar.write_bytes(b'unsafe replacement')
+                sidecar.chmod(0o644)
+        return original(fd)
+    monkeypatch.setattr(os, 'fstat', race)
+    if replacement:
+        with pytest.raises(UnsafeStoreError): _check(sidecar, optional=True)
+    else:
+        _check(sidecar, optional=True)

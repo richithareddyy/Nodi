@@ -9,12 +9,12 @@ usage accounting and audit. Approval cannot override a hard denial.
 
 [Domain](../nodi/domains/base.py) declares a name, canonical purpose, closed tool
 argument shapes, trusted metadata, tools/resources, `prepare(action) -> Prepared`,
-an intent evaluator, a default contract, an optional evaluation dataset and a setup action. The real sandbox domain uses Docker integration tests instead of a simulated dataset.
+an intent evaluator, a default contract, an optional evaluation dataset and a setup action. The real sandbox domain uses Docker integration tests; payments use crash/reconciliation tests instead of a simulated dataset.
 Preparation validates value types, sizes and destinations as well as required and
 optional argument keys. It computes trusted cost and impact but performs **no I/O
 or external effect**. The gateway alone writes simulated effects.
 
-The server-owned [registry](../nodi/domains/__init__.py) explicitly registers three
+The server-owned [registry](../nodi/domains/__init__.py) explicitly registers four
 implementations. To add a domain, implement that interface, register its reviewed
 name/purpose, and provide adapter, intent, policy and evaluation tests. There is no
 runtime loading of arbitrary plugins from agent requests or policy files. Python
@@ -25,6 +25,7 @@ plugin code is trusted operator code, not a security sandbox.
 | `procurement` | `monitor_procurement` | [Procurement plugin](../nodi/domains/procurement/domain.py) |
 | `research` | `research_assistant` | [Research plugin](../nodi/domains/research/domain.py) |
 | `sandbox` | `sandbox_readonly` | [Opt-in Docker reads](sandbox-execution.md) |
+| `payments` | `mock_payment` | [Opt-in mock payment outbox](outbox.md) |
 
 Existing procurement contracts retain their original shape, tool IDs, defaults
 and purpose; no ledger migration is needed. `nodi.tools` and `nodi.intent` retain
@@ -63,7 +64,7 @@ Required fields:
 | Field | Meaning |
 | --- | --- |
 | `mission` | Nonblank mission description, subject to the contract's length bound |
-| `domain` | Registered public name, `procurement`, `research`, or `sandbox` |
+| `domain` | Registered public name, `procurement`, `research`, `sandbox`, or `payments` |
 | `allow` | Exact domain tool IDs or documented aliases; no allow globs |
 | `deny` | Case-sensitive shell-style tool globs (`*`, `?`, character classes) |
 | `budget` | `max_usd` and `max_transaction_usd`, nonnegative exact-cent amounts, each at most one billion USD |

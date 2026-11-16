@@ -35,7 +35,9 @@ def main():
         evaluator = SemanticReviewer(**semantic) if semantic else None
         from .execution.docker import from_config
         backend = from_config(config.get("sandbox"))
-        app = create_app(Gateway(config["database"], evaluator=evaluator, backend=backend), config["admin_token"], config["agent_tokens"])
+        from .mock_payments import from_config as payment_config
+        provider = payment_config(config.get("mock_payments"))
+        app = create_app(Gateway(config["database"], evaluator=evaluator, backend=backend, payment_provider=provider), config["admin_token"], config["agent_tokens"])
         uvicorn.run(app, host="127.0.0.1", port=args.port, access_log=False)
     elif args.command == "demo":
         from .demo import run

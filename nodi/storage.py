@@ -9,22 +9,29 @@ class UnsafeStoreError(sqlite3.OperationalError):
 
 
 def _check(path, *, optional=False):
-    try:
-        fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW)
-    except FileNotFoundError:
-        if optional:
+    for _ in range(3):
+        try:
+            fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW)
+        except FileNotFoundError:
+            if optional:
+                return
+            raise UnsafeStoreError("database file is missing") from None
+        except OSError:
+            raise UnsafeStoreError("database file cannot be safely opened") from None
+        try:
+            info = os.fstat(fd)
+            # SQLite may unlink a journal between open and fstat. Reopen the path
+            # and fully check any replacement; never accept a multiply linked file.
+            if optional and info.st_nlink == 0:
+                continue
+            if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
+                raise UnsafeStoreError("database files must be regular files without additional hard links")
+            if info.st_uid != os.getuid() or info.st_mode & 0o077:
+                raise UnsafeStoreError("database files must belong to the current user with owner-only permissions")
             return
-        raise UnsafeStoreError("database file is missing") from None
-    except OSError:
-        raise UnsafeStoreError("database file cannot be safely opened") from None
-    try:
-        info = os.fstat(fd)
-        if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
-            raise UnsafeStoreError("database files must be regular files without additional hard links")
-        if info.st_uid != os.getuid() or info.st_mode & 0o077:
-            raise UnsafeStoreError("database files must belong to the current user with owner-only permissions")
-    finally:
-        os.close(fd)
+        finally:
+            os.close(fd)
+    raise UnsafeStoreError("database sidecar changed repeatedly during validation")
 
 
 def private_database(path, *, create=False):

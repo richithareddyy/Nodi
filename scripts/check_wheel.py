@@ -58,12 +58,17 @@ def main():
         sandbox = command('policy', 'explain', str(policy))
         if sandbox['mode'] != 'sandbox-readonly' or sandbox['contract']['purpose'] != 'sandbox_readonly':
             raise RuntimeError('installed sandbox policy compilation failed')
+        recovery = subprocess.run([str(python), '-I', '-m', 'nodi.outbox_demo'], cwd=root,
+                                  check=True, capture_output=True, text=True)
+        recovered = json.loads(recovery.stdout)
+        if recovered['committed_mock_charges'] != 1 or recovered['remaining_reservations'] != 0 or not recovered['audit_valid']:
+            raise RuntimeError('installed outbox recovery failed')
         demo = command('demo')
         if evaluation['case_count'] != 42 or evaluation['exact_decision_accuracy'] != 1:
             raise RuntimeError('installed evaluation failed')
         if [row['decision'] for row in demo] != ['ALLOW', 'ALLOW', 'DENY', 'ASK_HUMAN', 'ALLOW', 'DENY', 'DENY', 'DENY']:
             raise RuntimeError('installed demo failed')
-        print('Wheel installed outside checkout: procurement/research evaluations, policy CLI and all demo scenarios passed.')
+        print('Wheel installed outside checkout: procurement/research evaluations, policy CLI, outbox recovery and all demo scenarios passed.')
 
 
 if __name__ == '__main__':

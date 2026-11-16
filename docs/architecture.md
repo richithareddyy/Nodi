@@ -1,6 +1,6 @@
 # Architecture
 
-The gateway is an enforcement point. `/execute` both authorizes an exact action and invokes the selected protected adapter (simulation by default). There is no public tool route that skips authorization. Agent identity comes from a server-side credential mapping, not a request field. Visas are opaque IDs referencing stored contracts.
+The gateway is an enforcement point. `/execute` authorizes an exact action and invokes the selected protected adapter (simulation by default), or atomically reserves and queues an opt-in mock payment. There is no public tool route that skips authorization. Agent identity comes from a server-side credential mapping, not a request field. Visas are opaque IDs referencing stored contracts.
 
 ```mermaid
 flowchart LR
@@ -29,6 +29,9 @@ flowchart LR
 | `semantic.py` | Optional remote review that cannot relax the baseline |
 | `gateway.py` | Transactions, budgets, approvals, effects and audit |
 | `execution/` | Optional Docker read-only backend, bounded worker and pinned-address HTTPS proxy |
+| `outbox_store.py` | Transactional ancestor reservations, settlement and queued cancellation |
+| `outbox.py` | Leased dispatch, current-authority rechecks and provider reconciliation |
+| `mock_payments.py` | Independent durable mock provider with idempotency, lookup and cancellation fencing |
 | `json_input.py` | Strict JSON validation before HTTP route processing |
 | `api.py` | Credential separation, bounded HTTP bodies and operator routes |
 | `storage.py` | Private POSIX database creation and preconnection file checks |
@@ -50,7 +53,7 @@ Approvals expire at the earlier of five minutes or an ancestor's expiration. App
 
 Parent pointers preserve the full chain. Child allowed sets must be subsets; forbidden sets retain all parent restrictions. Budget, transaction limit, action count, approval threshold and expiration cannot increase. Depth decreases. Identity can change, while mission and canonical purpose remain the same.
 
-Authority is shared rather than reserved when delegated. Multiple children can each have a nominal cap equal to the parent, but aggregate usage cannot exceed the parent's current cap. Descendants remain subject to later ancestor restrictions and revocation. Snapshot parent pointers allow reconstruction of the delegation graph.
+Authority is shared rather than reserved when delegated. Specific authorized outbox payments reserve against every ancestor; that is per-action exposure, not a separate delegated budget. Multiple children can each have a nominal cap equal to the parent, but aggregate usage cannot exceed the parent's current cap. Descendants remain subject to later ancestor restrictions and revocation. Snapshot parent pointers allow reconstruction of the delegation graph.
 
 ## Audit and tradeoffs
 
@@ -60,7 +63,7 @@ The hash chain is locally verifiable, not tamper-proof. A database administrator
 
 SQLite is a local single-host ledger. Semantic review currently holds the writer transaction; remote latency reduces throughput. Production should perform expensive review outside the critical section and then revalidate versioned policy and effect metadata before reserving authority.
 
-Simulated effects are database records in the same transaction. Optional Docker reads happen after authorization inside that transaction; successful receipts and usage commit together, but a completed read cannot roll back and may repeat after commit failure. Writes remain disabled in the real backend. Real payments/messages require durable reservations or an outbox, provider idempotency, reconciliation and unknown-outcome handling. Replacing the insert with an HTTP call would invalidate the present atomicity guarantee.
+Simulated effects are database records in the same transaction. Optional Docker reads happen after authorization inside that transaction; successful receipts and usage commit together, but a completed read cannot roll back and may repeat after commit failure. Docker writes remain disabled. The opt-in mock-payment domain now reserves budget and writes a PENDING outbox row in the authorization transaction. Its worker commits a revalidated dispatch/UNKNOWN state before calling the separate provider outside the ledger lock. Idempotency, lookup and fenced cancellation prevent duplicate charges or premature release in the tested mock. A timeout retains reservations; settlement converts/releases them atomically with the receipt and audit. This is not atomic rollback of an external effect or proof that an arbitrary real processor has those guarantees. See [outbox execution](outbox.md).
 
 Operator list queries use read-only SQLite transactions and captured upper insertion bounds. They do not reserve the writer lock with BEGIN IMMEDIATE. In SQLite rollback-journal mode, an active read transaction can still delay a writer commit. Additive indexes are created on startup without rewriting existing audit events. See [pagination semantics](pagination.md).
 
@@ -76,4 +79,20 @@ Policy deny globs expand to concrete forbidden sets at compilation. Denies win o
 allows; existing exact-set checks and attenuation remain the enforcement path.
 Research uses offline fixture reads and reviewed summary records, not host I/O.
 See [domains and policy files](domains.md) for the compiler's bounds, defaults and
-tradeoffs. The separate `sandbox_readonly` purpose enables real Docker reads only when the operator configures the backend. It never upgrades a simulation visa into real authority. See [read-only execution](sandbox-execution.md) for confinement, egress, deadlines and retry limits. Reservations and external write recovery remain Phase 4.
+tradeoffs. The separate `sandbox_readonly` purpose enables real Docker reads only when the operator configures the backend. It never upgrades a simulation visa into real authority. See [read-only execution](sandbox-execution.md) for confinement, egress, deadlines and retry limits. The separate `mock_payment` purpose uses the Phase 4 outbox. Existing purposes retain their adapters; no simulation silently becomes a payment.
+
+## External dispatch commitment and recovery
+
+Queued payments are cancelled on subtree edits/revocation. Dispatched unknown work
+retains its reservation, even after expiry, until authoritative reconciliation.
+Caps cannot be lowered below committed plus uncertain reserved exposure. Revocation
+cannot undo an already-dispatched provider call; the durable dispatch check is its
+authorization commitment point. A recorded earlier success is accounted for even
+if the visa has since expired. Absent operations are reauthorized before retry or
+fenced at the provider before releasing funds. Lease expiry alone releases nothing.
+
+The API's `decision` describes authorization. Outbox `execution_state` describes
+PENDING, UNKNOWN, COMMITTED or FAILED, and `executed` becomes true only for a
+confirmed commit. Provider identity and payload binding persist across restarts.
+A worker or provider outage can leave exposure held indefinitely; monitoring and
+provider-specific operational reconciliation remain required for real deployment.
