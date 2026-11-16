@@ -84,3 +84,14 @@ controlled test integration, not a real payment connector.
 
 [Recorded local evidence](benchmarks/results/local/README.md) distinguishes offline
 measurements from unmeasured live performance and documents label limitations.
+
+## Offline scoped delegation
+
+Optional [capability tokens](docs/capabilities.md) let a holder derive a narrower
+child credential offline. Execution still consults the gateway ledger for shared
+budgets, revocation, expiry and exact approvals. This custom chained-HMAC prototype
+is disabled by default and does not replace server-side enforcement.
+
+```sh
+python -m nodi.capability_demo
+```

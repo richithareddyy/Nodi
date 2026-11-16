@@ -37,7 +37,9 @@ def main():
         backend = from_config(config.get("sandbox"))
         from .mock_payments import from_config as payment_config
         provider = payment_config(config.get("mock_payments"))
-        app = create_app(Gateway(config["database"], evaluator=evaluator, backend=backend, payment_provider=provider), config["admin_token"], config["agent_tokens"])
+        from .capabilities import from_config as capability_config
+        keys = capability_config(config.get("capability_keys"))
+        app = create_app(Gateway(config["database"], evaluator=evaluator, backend=backend, payment_provider=provider, capability_keys=keys), config["admin_token"], config["agent_tokens"])
         uvicorn.run(app, host="127.0.0.1", port=args.port, access_log=False)
     elif args.command == "demo":
         from .demo import run

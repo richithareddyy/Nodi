@@ -96,3 +96,15 @@ PENDING, UNKNOWN, COMMITTED or FAILED, and `executed` becomes true only for a
 confirmed commit. Provider identity and payload binding persist across restarts.
 A worker or provider outage can leave exposure held indefinitely; monitoring and
 provider-specific operational reconciliation remain required for real deployment.
+
+## Optional offline capabilities
+
+`capabilities.py` implements bounded, versioned first-party HMAC caveats and offline
+attenuation. `capability_store.py` binds signed roots to source-visa epochs and
+materializes stable prefix IDs within the existing execution transaction. The same
+policy, intent, approval and budget path remains mandatory. Optional capability
+bearers use `/execute` and scope-limited `/requests/status`; static credentials remain
+supported. Prefixes are immutable ledger nodes, not independent budgets. Public
+claims are persisted, while token signatures and signing keys are not. Source edits
+invalidate roots; outbox dispatch also checks persisted root bindings. See the
+[format, configuration and limitations](capabilities.md).

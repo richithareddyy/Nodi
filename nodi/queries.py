@@ -67,11 +67,26 @@ class ReadModel:
             rows = db.execute(sql + " ORDER BY rowid LIMIT ?", [*values, limit + 1]).fetchall()
             return self.page(rows, limit, high, lambda r: {**dict(r), "contract": json.loads(r["contract"])})
 
-    def request_status(self, principal, request_id):
+    def request_status(self, principal, request_id, *, capability=None):
         with self.gateway.read_transaction() as db:
+            if capability is not None:
+                from .capability_store import root_binding, request_binding
+                from .capabilities import CapabilityError
+                root_binding(self.gateway, db, capability.data['root'])
+                root_id = request_binding(self.gateway, db, principal, request_id)
+                if root_id != capability.data['root']['id']:
+                    raise LookupError("request not found")
+                for item in capability.data['caveats']:
+                    if int(self.gateway.clock()) >= item['contract']['expires_at']:
+                        raise CapabilityError("capability expired")
+                if db.execute('SELECT 1 FROM visas WHERE id=?', (capability.visa_id,)).fetchone() is None:
+                    raise LookupError('request not found')
+                for depth, (node, scope) in enumerate(self.gateway._chain(db, capability.visa_id)):
+                    if node['status'] != 'active' or int(self.gateway.clock()) >= scope.expires_at or depth > scope.delegation_depth:
+                        raise CapabilityError("capability inactive")
             row = db.execute("SELECT fingerprint,response,approval,deadline FROM requests WHERE principal=? AND id=?",
                              (principal, request_id)).fetchone()
-            if row is None:
+            if row is None or (capability is not None and json.loads(row["response"])["visa_id"] != capability.visa_id):
                 raise LookupError("request not found")
             now = int(self.gateway.clock())
             outstanding = row["approval"] in ("pending", "approved")

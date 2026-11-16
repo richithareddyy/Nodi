@@ -13,7 +13,8 @@ from .models import Action, Contract
 from .policy import attenuation, checks
 from .domains import get_domain
 from .storage import private_database
-from . import outbox_store
+from . import outbox_store, capability_store
+from .capabilities import CapabilityError
 
 logger = logging.getLogger("nodi.decisions")
 
@@ -23,9 +24,10 @@ def encode(value) -> str:
 
 
 class Gateway:
-    def __init__(self, path: str, evaluator: Evaluator | None = None, clock: Callable = time.time, *, backend=None, payment_provider=None):
+    def __init__(self, path: str, evaluator: Evaluator | None = None, clock: Callable = time.time, *, backend=None, payment_provider=None, capability_keys=None):
         self.path, self.evaluator, self.clock = path, evaluator or DomainEvaluator(), clock
         self.backend, self.payment_provider = backend, payment_provider
+        self.capabilities = capability_keys
         if payment_provider is not None:
             from pathlib import Path
             if payment_provider.path is not None and Path(self.path).resolve() == Path(payment_provider.path).resolve():
@@ -51,6 +53,7 @@ class Gateway:
                     previous_hash TEXT NOT NULL, event_hash TEXT NOT NULL);
             ''')
             db.executescript(outbox_store.SCHEMA)
+            db.executescript(capability_store.SCHEMA)
             if payment_provider is not None and db.execute(
                     "SELECT 1 FROM outbox WHERE state IN ('PENDING','UNKNOWN') AND provider_id != ? LIMIT 1",
                     (payment_provider.identity,)).fetchone():
@@ -112,8 +115,8 @@ class Gateway:
         with self.transaction() as db:
             return self._insert(db, contract, None)
 
-    def _insert(self, db, contract: Contract, parent: str | None) -> dict:
-        visa_id, now = uuid4().hex, int(self.clock())
+    def _insert(self, db, contract: Contract, parent: str | None, *, visa_id=None) -> dict:
+        visa_id, now = visa_id or uuid4().hex, int(self.clock())
         db.execute("INSERT INTO visas(id,parent,contract,issued_at) VALUES(?,?,?,?)", (visa_id, parent, encode(contract.dictionary()), now))
         self._audit(db, {"event": "visa_issued", "visa_id": visa_id, "parent": parent, "contract": contract.dictionary()})
         return {"visa_id": visa_id, "parent": parent, "issued_at": now, "status": "active", **contract.dictionary()}
@@ -121,6 +124,8 @@ class Gateway:
     def delegate(self, principal: str, parent: str, child: Contract) -> dict:
         with self.transaction() as db:
             try:
+                if capability_store.is_node(db, parent):
+                    raise ValueError("capability scopes delegate only through offline attenuation")
                 chain = self._chain(db, parent)
                 if chain[0][1].agent_id != principal:
                     raise ValueError("parent visa does not belong to caller")
@@ -161,6 +166,8 @@ class Gateway:
     def modify(self, visa_id: str, contract: Contract) -> None:
         """Human edits are rechecked on all subsequent actions, including approvals."""
         with self.transaction() as db:
+            if capability_store.is_node(db, visa_id):
+                raise ValueError("capability scopes are immutable; revoke and derive a new token")
             chain = self._chain(db, visa_id)
             old = chain[0][1]
             if (contract.agent_id, contract.mission, contract.purpose) != (old.agent_id, old.mission, old.purpose):
@@ -172,6 +179,7 @@ class Gateway:
             if money and (contract.spending_limit < chain[0][0]["spent"] + money or contract.max_actions < chain[0][0]["actions"] + actions):
                 raise ValueError("cannot lower caps below committed and uncertain reserved usage")
             db.execute("UPDATE visas SET contract=? WHERE id=?", (encode(contract.dictionary()), visa_id))
+            db.execute("UPDATE capability_epochs SET epoch=epoch+1 WHERE visa_id=?", (visa_id,))
             invalidated = self._invalidate_reviews(db, visa_id)
             self._audit(db, {"event": "visa_modified", "visa_id": visa_id, "before": old.dictionary(),
                              "after": contract.dictionary(), "invalidated_reviews": invalidated})
@@ -190,10 +198,23 @@ class Gateway:
             self._audit(db, {"event": "human_review", "agent": principal, "request_id": request_id, "outcome": state, "fingerprint": row["fingerprint"]})
             return {"approval": state, "request_id": request_id}
 
-    def execute(self, principal: str, action: Action) -> dict:
+    def issue_capability(self, visa_id: str, key_id: str) -> dict:
+        return capability_store.issue(self, visa_id, key_id)
+
+    def execute_capability(self, token: str, action: Action) -> dict:
+        if self.capabilities is None:
+            raise CapabilityError("capabilities are not enabled")
+        verified = self.capabilities.verify(token)
+        return self.execute(verified.principal, action, _capability=verified)
+
+    def execute(self, principal: str, action: Action, *, _capability=None) -> dict:
         start = time.perf_counter()
         fingerprint = hashlib.sha256(encode(action.dictionary()).encode()).hexdigest()
         with self.transaction() as db:
+            if _capability is not None:
+                capability_store.materialize(self, db, _capability, action)
+            elif capability_store.is_node(db, action.visa_id) or capability_store.request_binding(self, db, principal, action.request_id):
+                raise CapabilityError("capability credential required for this scope or request")
             previous = db.execute("SELECT * FROM requests WHERE principal=? AND id=?", (principal, action.request_id)).fetchone()
             if previous and previous["fingerprint"] != fingerprint:
                 response = {"request_id": action.request_id, "visa_id": action.visa_id, "decision": "DENY", "reason": "request_id is bound to a different action", "executed": False}

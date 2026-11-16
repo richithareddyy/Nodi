@@ -109,3 +109,17 @@ crash and race tests cover the provider/local-commit gap and cancellation fencin
 For external operations, dispatch authorization and later settlement are distinct.
 An already-dispatched operation may settle after revocation or expiry; settlement
 records an earlier grant, not renewed authority. See [outbox semantics](outbox.md).
+
+## Capability-token extension
+
+`tests/test_capability_invariants.py` generates offline token trees and mixed ledger
+histories under the same CI/deep profiles. I1 uses the existing attenuation checker;
+I2 independently reconstructs subtree costs from observed effects; I3 checks active,
+unexpired ancestry and matching ALLOW audit records at execution; I4 keeps hard
+checks ahead of generated remote semantic decisions and exact approvals; I5 rejects
+revoked/expired credentials; I6 checks copied tokens, retries and conflicting request
+IDs; I7 validates the audit chain after every step. Dedicated tests cover forged
+MACs, stripped/reordered caveats, valid-MAC widening, root epoch invalidation,
+concurrent siblings, outbox holds and rollback of first-use materialization.
+Offline token creation changes no ledger state. These bounded tests establish
+regression behavior, not proof of cryptographic security. See [capabilities](capabilities.md).

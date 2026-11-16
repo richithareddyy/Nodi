@@ -23,6 +23,8 @@ class Outbox:
         self.fault = fault or (lambda stage: None)
 
     def _authorize(self, db, row):
+        from .capability_store import request_binding
+        request_binding(self.gateway, db, row['principal'], row['request_id'])
         action = Action(**json.loads(row['action']))
         chain = self.gateway._chain(db, row['visa_id'])
         now = int(self.gateway.clock())

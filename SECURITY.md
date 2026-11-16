@@ -84,3 +84,19 @@ reports quantify this limitation; they do not establish production capacity or r
 the need for bounded remote evaluators. Moving checks outside the lock would require
 policy-version validation and atomic budget reservation/revalidation. No such move
 is made here. See [benchmark methodology](benchmarks/README.md).
+
+## Optional capability credentials
+
+The `nodi1` bearer format permits offline first-party attenuation using chained
+HMAC-SHA256. Gateway-side verification, root registration/epoch checks and the full
+current ledger remain mandatory. It is a custom bounded format, not interoperable
+macaroon/Biscuit serialization or independently audited cryptography. Root keys,
+issuance, database contents and adapter metadata remain trusted. Tokens are readable
+bearer secrets; holders may retain a stronger parent. No workload identity, token
+transport binding, third-party caveat or tenant isolation is added.
+
+Capabilities are disabled unless keys are explicitly configured. Signatures/keys
+are never stored in audit records. Public claims and stable prefix scopes are
+stored, and repeated offline derivation can create many nodes: rate limits, quotas,
+key custody and secure transport remain deployment responsibilities. See
+[capability assumptions and lifecycle rules](docs/capabilities.md).

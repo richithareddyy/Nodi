@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, ConfigDict, Field
 from .gateway import Gateway
+from .capabilities import CapabilityError, PREFIX
 from .execution.docker import ExecutionError
 from .json_input import validate_json
 from .models import Action, Contract, draft
@@ -32,6 +33,10 @@ class Review(StrictModel):
     request_id: str
     approve: bool
     expected_fingerprint: str = Field(pattern=r"^[a-f0-9]{64}$")
+
+
+class CapabilityMint(StrictModel):
+    key_id: str = Field(pattern=r"^[A-Za-z0-9_-]{1,64}$")
 
 
 class ActionBody(StrictModel):
@@ -133,6 +138,11 @@ def create_app(gateway: Gateway, admin_token: str, agent_tokens: dict[str, str])
     async def invalid(_request: Request, exc: Exception):
         return JSONResponse({"detail": str(exc)}, status_code=422)
 
+    @app.exception_handler(CapabilityError)
+    async def invalid_capability(_request: Request, _exc: Exception):
+        return JSONResponse({"detail":"invalid, inactive or out-of-scope capability"}, status_code=401,
+                            headers={"Cache-Control":"no-store"})
+
     @app.exception_handler(sqlite3.Error)
     async def unavailable(_request: Request, _exc: Exception):
         return JSONResponse({"detail": "authorization store unavailable; execution not confirmed"}, status_code=503)
@@ -167,15 +177,27 @@ def create_app(gateway: Gateway, admin_token: str, agent_tokens: dict[str, str])
     def delegate(visa_id: str, body: dict = Body(...), principal: str = Depends(agent)):
         return gateway.delegate(principal, visa_id, Contract(**body))
 
+    @app.post("/visas/{visa_id}/capability", dependencies=[Depends(admin)])
+    def mint_capability(visa_id: str, body: CapabilityMint):
+        return JSONResponse(gateway.issue_capability(visa_id, body.key_id), headers={"Cache-Control":"no-store"})
+
     @app.post("/execute")
-    def execute(body: ActionBody, principal: str = Depends(agent)):
-        return gateway.execute(principal, Action(**body.model_dump()))
+    def execute(body: ActionBody, credential: str = Depends(token)):
+        action = Action(**body.model_dump())
+        if credential.startswith(PREFIX):
+            return gateway.execute_capability(credential, action)
+        return gateway.execute(agent(credential), action)
 
     @app.get("/requests/status")
     def request_status(request_id: str = Query(..., pattern=r"^[A-Za-z0-9_-]{1,100}$"),
-                       principal: str = Depends(agent)):
+                       credential: str = Depends(token)):
         try:
-            result = reads.request_status(principal, request_id)
+            if credential.startswith(PREFIX):
+                if gateway.capabilities is None: raise CapabilityError("capabilities disabled")
+                verified = gateway.capabilities.verify(credential)
+                result = reads.request_status(verified.principal, request_id, capability=verified)
+            else:
+                result = reads.request_status(agent(credential), request_id)
         except LookupError:
             return JSONResponse({"detail": "request not found"}, status_code=404, headers={"Cache-Control": "no-store"})
         return JSONResponse(result, headers={"Cache-Control": "no-store"})
@@ -243,4 +265,6 @@ def from_environment() -> FastAPI:
     backend = from_config(json.loads(os.environ["NODI_SANDBOX"]) if "NODI_SANDBOX" in os.environ else None)
     from .mock_payments import from_config as payment_config
     provider = payment_config(json.loads(os.environ["NODI_MOCK_PAYMENTS"]) if "NODI_MOCK_PAYMENTS" in os.environ else None)
-    return create_app(Gateway(os.environ.get("NODI_DB", "nodi.db"), backend=backend, payment_provider=provider), admin_token, agents)
+    from .capabilities import from_config as capability_config
+    keys = capability_config(json.loads(os.environ["NODI_CAPABILITY_KEYS"]) if "NODI_CAPABILITY_KEYS" in os.environ else None)
+    return create_app(Gateway(os.environ.get("NODI_DB", "nodi.db"), backend=backend, payment_provider=provider, capability_keys=keys), admin_token, agents)
