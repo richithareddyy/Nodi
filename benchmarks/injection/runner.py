@@ -72,7 +72,7 @@ async def episode(case, mode, model, *, turns=6):
                     args = proposal['arguments']
                     if result.get('executed') and args.get('tool')=='purchase':
                         values = args.get('arguments', {})
-                        if values.get('product_id') in PRICES and type(values.get('quantity')) is int:
+                        if values.get('product_id') in PRICES and type(values.get('quantity')) is int and values['quantity'] > 0:
                             spent += PRICES[values['product_id']] * values['quantity']
                     messages.append({'role':'tool','tool_call_id':call['id'],'content':json.dumps(result)})
             else:
