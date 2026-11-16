@@ -1,0 +1,144 @@
+{
+  "date_utc": "2026-11-16T18:48:27.791891+00:00",
+  "git_commit": "e54f47b2d94b1bb529aa398d888ada5cab8f7a38",
+  "git_dirty": true,
+  "python": "3.14.7",
+  "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+  "label_provenance": {
+    "label_source": "machine-authored, specification-derived cases",
+    "independently_validated": false,
+    "limitation": "Labels are test expectations, not independently validated ground truth."
+  },
+  "source_sha256": {
+    "benchmarks/__init__.py": "f941022e6ad9d3386a30d22a1668c7fccc45b5e233315268d22e8f514427e406",
+    "benchmarks/injection/__init__.py": "bc383a5f7ce75690e7f084795f5cad40a1e7ccbd0511e03abb16ee348b2f4c58",
+    "benchmarks/injection/environment.py": "9a6418e9425f2c5836873b0ef3e5d43638cc7ddfdfd939edbd3e6a029b8bc1c4",
+    "benchmarks/injection/oracle.py": "9b7db5d597d8f2029ac2b1f919b40729e7f21fd4e5dce67b2f36de81e3414db5",
+    "benchmarks/injection/provider.py": "15399d5379b5094ede08ec01d91315783861fbb0f6ba58785f63228364e0a904",
+    "benchmarks/injection/report.py": "6844d45b74a63b9abc4133261b848fec6fbb5f8e1081ccaa4e219ed42dbcf11c",
+    "benchmarks/injection/runner.py": "76e5b4fad0b86d85040ee8232c3e72f2dffcd77eb9c73d682a06b314e1f71ca0",
+    "benchmarks/injection/suite.py": "7fb38f4c940e6023a6ff433dd449460fb64f6647cfd61db1d0de8a85ecc7b194",
+    "benchmarks/metrics.py": "bad61660cb728e1f2284f2a3c86ef47cb9615ac1edb388d6577f84af3c6f9c55",
+    "benchmarks/purpose/__init__.py": "08c85e39d7d9e40eb7d20e88eef8e5965cb0a636a91ced8492b0bee44c6f9b40",
+    "benchmarks/purpose/contention.py": "93181480e97be55103810c9254be7a102c63b613b869e03653c37efff4864e66",
+    "benchmarks/purpose/run.py": "7b73f1af5156c601ac25008dbf75ab8da7e8ee5fa4646a245db13d6eb4d370f3",
+    "benchmarks/purpose/suite.py": "1c64542f7729ab277a2dc1e298a667bdd8862153f95cf33f368a19bb64cf2f15",
+    "benchmarks/recovery/__init__.py": "f4ae57411b6d4cfea400587c96b5416a0035ea9145d8e4a6e427796a00954e24",
+    "benchmarks/recovery/client.py": "ddd93832f3aa7a3167bc5b1f7224ae903e6858b9fbd88da5b035ccb51495a0f0",
+    "benchmarks/recovery/service.py": "876c0eb956dbadf3ce9a2c6c22a4f1747b840e1da318a8f463788e57b9f81ba9",
+    "nodi/__init__.py": "3fa0a7036c4a79b71dc6a9f5cd2bdc0fd8ddcd25c06b73811a8cf2373e685f89",
+    "nodi/__main__.py": "989d973181d8c3b839e180e02d5f3dbc1c1b38ea30e22d3b48110aca8e617fc2",
+    "nodi/api.py": "a170accdd632067a64e69499203afea080ac735bf3c22dbac1b8a5cac9e457b8",
+    "nodi/audit_export.py": "9f24b3b4050277d51c09cf34340e960d1cdacd70cdb9a62f7f7ae2485d8ea683",
+    "nodi/audit_verify.py": "ab06851ada6fc4dd6e82379f2cab8a0ee01a70bd9988d6afe6fd2db1a1031783",
+    "nodi/dashboard.py": "e8b16561cac663c28ca5272f4fa3a6298dc9bfc7d0c475f975316d2f23d2b3ff",
+    "nodi/dataset.py": "dd7f450c7c7971aed2788ffd4c1135913477de8153930487d48f76c46bbde771",
+    "nodi/demo.py": "1553f6f41a737a0e33af668f710a2bdcae5b9a2a6e2198d34be23cdaad29e3f1",
+    "nodi/domain_types.py": "294b5427a9b7656dd9570f7db507485a64673507f9a4ddc553668125338f468b",
+    "nodi/domains/__init__.py": "b8f64d9c98a42413dfeda1a9c78e4679929c36c12dd73db5320fde41ed7a75af",
+    "nodi/domains/base.py": "b5b5e4df9ffda996e93bb5e03adcc3d12163407331330548d9a5c2bc2349331c",
+    "nodi/domains/payments.py": "a1ae437141ad59f4500835b95f232311a709314ebc04e0f3308eb8d0f5d6ba8e",
+    "nodi/domains/procurement/__init__.py": "a9506e8c8e4a5778f243d99d7b6963aa418eed4e976a512293a56446f488928f",
+    "nodi/domains/procurement/contracts.py": "60884ed400985dd3240735a12d35bca40ab302bd9520f5fd45adff533e68b0ff",
+    "nodi/domains/procurement/domain.py": "1cfbe06884821973febae034ef52d42b28348b703344f359961c21c968407dac",
+    "nodi/domains/procurement/intent.py": "f5302f267a833b7029b4b09cf19a5133730f729c85f1bb3251480ad9d31d18d9",
+    "nodi/domains/procurement/metadata.py": "6717e62f90c9394b56547ca7197a2fae15169ef691bfed996c264e97d7a98d85",
+    "nodi/domains/procurement/tools.py": "4aa4e6b582e44dd8929b8cb6add43c29cf1383d8eec3cdc4f30c226b3fc9e09d",
+    "nodi/domains/readonly.py": "7752bd23ea7385497577f94a656cafce184c6e65cf228658622633feabbacf92",
+    "nodi/domains/research/__init__.py": "8e38c9fa9ce734aa4968c74e8caeb82e46eaf1c7f5081ee611d85cc38e58e0c2",
+    "nodi/domains/research/domain.py": "6db570f1df8ececb2a1650c33dd66a4f4e5aa822348c99bebf28b814cc0cf72a",
+    "nodi/evaluation.py": "906b8e440f035c86b2fa3fce4ae395ba879e422a5ad5ec2327fd06e9364d444c",
+    "nodi/execution/__init__.py": "10d0123d27d89d615a8523342f8ebd2da9e22895bbe5ef4e7a47c100e9d3f7b1",
+    "nodi/execution/docker.py": "c15c87fb8c112b67b6f5d9ee8d72e3c38f20ffc9f1c21daa688388f0f1d83e9c",
+    "nodi/execution/egress.py": "74172cfc373bcf913c025b2a69ad24e4edaf77b6dd01ca31b16b424795bd75f6",
+    "nodi/execution/validation.py": "2c589ec16c8354ad0b5072fcd53a43d75c6b912cd5549465ff4d73d29781d209",
+    "nodi/execution/worker.py": "55ff5d41769277dbd10d3f90346baecd83e81bfdfd92b11da97bfccb1c359761",
+    "nodi/gateway.py": "b31834bb02cc0822f4c1eaaf335cf1ceca20a5569b34d67177cc31be3da7d623",
+    "nodi/hosted.py": "dc5ff32e83f8ec8697857c2ccf11176e8d70051353159a78aca02f19ad7943e7",
+    "nodi/intent.py": "dc2c04653fe1241794011ddadc822ed90d1a55e138d3270e147fe10bf4ecd68a",
+    "nodi/json_input.py": "784e7162abc86d2c4e65944c3f331f51019e434d504b4489304c915bc5a2b73d",
+    "nodi/mcp_server.py": "5a2ff5e3aa1cd451a38d0a0e5455c4ac78471d2e89b5281974994ae7e384451f",
+    "nodi/mock_payments.py": "ff41d870d73845f8e504a0a2aa9fdf1284e3e896f960dcdd48ed5c5be974a3a3",
+    "nodi/models.py": "0be85448270f4d776a1c79157a641ebb4f05351ebd0b41101d7f0b8e7a2ee0f4",
+    "nodi/operator.py": "1bae4f7912ecd7eb0a2aa7027b292f1816f6ec334ad752f9f5b6523593960320",
+    "nodi/outbox.py": "aaeb8a93f5c9a566607a371dfaf62a066231e96e2c5366b968b13b5b0a6f56b0",
+    "nodi/outbox_demo.py": "ad3ce6cfb58a6d218dfecbd1c475b0de14200e690617a52f5e56a2f8a8933aaf",
+    "nodi/outbox_store.py": "9b9c4ced5dd0379ded7dd9dff1c963c3945fd272d09c9698aa7fdfe8c2f47696",
+    "nodi/policy.py": "d3ef9038b1e94d8aee2c63102f17d6033deaeb29e7de991b939a1f9daee08fc3",
+    "nodi/policy_files.py": "fa496429f3ced9f3cb665ffcfdda8898d567bfd8c83d3edf474170822345434d",
+    "nodi/queries.py": "13b2a2f815f0c989141a76701dc8c52107b6ed21cc420a7d96e7c067da9f1862",
+    "nodi/sandbox.py": "d74083a801b5a4354e472d5ac5c1d6fb74491ff780980e68edcf162de1302987",
+    "nodi/semantic.py": "d188bb3980a7ee34152ac465b0a7036263534ab5945458fa12ac51b97a424060",
+    "nodi/storage.py": "40cef5222e72c7f01dafa8d6c6a82ec2fc144cd5cc41422034aff9f17fc58ea4",
+    "nodi/tools.py": "42d6063bbe905b81e582f2bb49f1e6a8f9f602f683b3c82cb6ab3039bfc0d82f",
+    "nodi/transport.py": "d4472d30e5f4adae8a72131853d4513fd8c7abaabf477f826359a1da53e4a7c6"
+  },
+  "workers": 8,
+  "configured_delay_ms": 50.0,
+  "method": "Time from transaction entry through BEGIN IMMEDIATE; includes file/connect overhead. One barrier-synchronized batch per condition.",
+  "conditions": {
+    "fast": {
+      "writer_acquisition": {
+        "n": 8,
+        "mean_ms": 27.536791458260268,
+        "p50_ms": 12.617208063602448,
+        "p95_ms": 76.03404112160206
+      },
+      "end_to_end": {
+        "n": 8,
+        "mean_ms": 28.162588772829622,
+        "p50_ms": 13.13595799729228,
+        "p95_ms": 76.81870879605412
+      },
+      "batch_ms": 77.49175000935793,
+      "decisions": {
+        "ALLOW": 8,
+        "DENY": 0,
+        "ASK_HUMAN": 0
+      },
+      "audit_valid": true
+    },
+    "slow": {
+      "writer_acquisition": {
+        "n": 8,
+        "mean_ms": 274.4428852456622,
+        "p50_ms": 217.63104107230902,
+        "p95_ms": 604.4355002231896
+      },
+      "end_to_end": {
+        "n": 8,
+        "mean_ms": 333.4432290866971,
+        "p50_ms": 272.88983296602964,
+        "p95_ms": 665.247708093375
+      },
+      "batch_ms": 665.9260001033545,
+      "decisions": {
+        "ALLOW": 8,
+        "DENY": 0,
+        "ASK_HUMAN": 0
+      },
+      "audit_valid": true
+    },
+    "failing": {
+      "writer_acquisition": {
+        "n": 8,
+        "mean_ms": 280.3561617038213,
+        "p50_ms": 234.7491248510778,
+        "p95_ms": 609.9101672880352
+      },
+      "end_to_end": {
+        "n": 8,
+        "mean_ms": 340.10443749139085,
+        "p50_ms": 290.0029169395566,
+        "p95_ms": 669.1751251928508
+      },
+      "batch_ms": 669.8171659372747,
+      "decisions": {
+        "ALLOW": 0,
+        "DENY": 0,
+        "ASK_HUMAN": 8
+      },
+      "audit_valid": true
+    }
+  }
+}

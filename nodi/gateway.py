@@ -28,7 +28,7 @@ class Gateway:
         self.backend, self.payment_provider = backend, payment_provider
         if payment_provider is not None:
             from pathlib import Path
-            if Path(self.path).resolve() == Path(payment_provider.path).resolve():
+            if payment_provider.path is not None and Path(self.path).resolve() == Path(payment_provider.path).resolve():
                 raise ValueError("provider and authorization databases must be separate")
         private_database(self.path, create=True)
         with self.transaction() as db:

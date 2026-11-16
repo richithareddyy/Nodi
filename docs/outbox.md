@@ -226,3 +226,30 @@ second charge. These are bounded regression and fault tests, not independently
 sampled production failures. No population reliability rate or statistical confidence
 interval is inferred. CI runs them and verifies the recovery demo from an installed
 wheel outside the source checkout.
+
+## Separate HTTP boundary validation
+
+The controlled service in `benchmarks/recovery` owns a different durable database
+in a separate process. Authorization and ancestor reservation commit together as
+PENDING. A worker rechecks current policy, records dispatch authorization and marks
+UNKNOWN before HTTP dispatch. The service commits an idempotent effect independently;
+its HTTP response is acknowledgement, **not** gateway completion. Only a validated,
+payload-bound receipt plus atomic ledger settlement converts reservations into spend
+and records COMMITTED. A local settlement crash rolls that transaction back.
+
+Recovery retains UNKNOWN holds and queries the original service identity. A terminal
+receipt settles once; ABSENT requires fresh dispatch authorization or a durable
+cancellation fence before releasing funds. Lease ownership prevents a stale worker
+from settling a newer worker's claim, while service idempotency handles overlapping
+HTTP requests. Revocation/expiry prevents new dispatch authority, not completion of
+already authorized in-flight work. An already committed service effect is reconciled
+even after revocation; it is never relabeled FAILED merely to release its budget.
+
+Tests kill the gateway before dispatch, after acknowledgement and during settlement,
+and kill the service after its durable effect but before acknowledgement. They also
+exercise overlapping expired leases, concurrent reservation/worker contention,
+retries, expiry/revocation, late-charge cancellation fencing and ancestor conservation.
+The service assumes durable storage survives process death (not disk loss), permanent
+payload-bound idempotency, authoritative lookup and atomic cancellation. This adds
+network-boundary evidence to the existing simulated design; SQLite atomicity alone
+does not establish external atomicity or verify a third-party integration.

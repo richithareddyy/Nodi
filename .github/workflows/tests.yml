@@ -24,6 +24,8 @@ jobs:
       - run: python -m nodi policy validate examples/policies/procurement.json
       - run: python -m nodi policy validate examples/policies/research.json
       - run: python -m nodi demo
+      - run: python -m benchmarks.injection.runner --output /tmp/nodi-injection-skip
+      - run: python -m benchmarks.purpose.run --output /tmp/nodi-purpose.json
       - run: python -m nodi.outbox_demo
       - run: python -m nodi policy validate examples/policies/payments.json
       - run: python -m pip wheel . --no-deps --wheel-dir dist

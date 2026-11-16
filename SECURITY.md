@@ -69,3 +69,18 @@ provider must supply equivalent guarantees or retain uncertainty; no production
 payment connector is implemented. Provider/gateway databases and the worker are
 trusted, private operator components, not agent tools. See [recovery semantics and
 validation](docs/outbox.md).
+
+## Evaluation boundaries
+
+The Phase 5 counterfactual modes exist only under `benchmarks/`, are not packaged
+with the application, and perform inert simulated effects. Production authorization
+and MCP tools remain unchanged. Synthetic labels are specification-derived and not
+independently validated ground truth; skipped or scripted runs are not live model
+performance evidence. The separate loopback service tests recovery assumptions,
+not real payment-provider compatibility or universal exactly-once execution.
+
+Slow/failing purpose evaluators still hold the writer transaction. Local contention
+reports quantify this limitation; they do not establish production capacity or remove
+the need for bounded remote evaluators. Moving checks outside the lock would require
+policy-version validation and atomic budget reservation/revalidation. No such move
+is made here. See [benchmark methodology](benchmarks/README.md).

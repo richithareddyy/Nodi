@@ -72,3 +72,15 @@ local temporary stores and never moves real money.
 Tests cover budget races, delegation, approval replay, expiry, and rollback. The [42 evaluation cases](nodi/data/cases.json) were developed alongside the code: they are regression checks, not an independent security benchmark. Intent scores are heuristic, not probabilities.
 
 [Generated invariant tests](docs/invariants.md) · [Detailed walkthrough and results](GUIDE.md) · [Architecture](docs/architecture.md) · [Security limits](SECURITY.md) · [Evaluation](docs/evaluation.md)
+
+## Evaluation and external recovery
+
+The [benchmark tools](benchmarks/README.md) include a 200-attack tool-output injection
+suite, isolated guard comparisons, held-out purpose expectations and writer-lock
+measurements. Live model runs require explicit opt-in and credentials; skipped runs
+are not model performance results. A separate durable loopback service exercises
+HTTP recovery under process death, retries and concurrent workers. This remains a
+controlled test integration, not a real payment connector.
+
+[Recorded local evidence](benchmarks/results/local/README.md) distinguishes offline
+measurements from unmeasured live performance and documents label limitations.
