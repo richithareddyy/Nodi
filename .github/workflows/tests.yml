@@ -48,3 +48,36 @@ jobs:
       - name: Remove test proxy and private socket volume
         if: always()
         run: docker compose -f docker/compose.sandbox.yml down --volumes
+
+  postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        python: ['3.11', '3.14']
+    env:
+      HYPOTHESIS_PROFILE: nodi-ci
+      NODI_TEST_POSTGRES_DSN: postgresql://postgres:nodi-ci-local@127.0.0.1:5432/nodi
+    services:
+      postgres:
+        image: postgres:18-alpine@sha256:b6972e1115a4ff8eba5d7f7d19184926d1e16d7d1136ae1e1a7ebf286da0f015
+        env:
+          POSTGRES_PASSWORD: nodi-ci-local
+          POSTGRES_DB: nodi
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install -e '.[test,mcp,postgres]' -c requirements.lock
+      - run: python -m pytest -q
+      - run: docker compose -f docker/compose.sandbox.yml up -d --build --wait
+      - name: Test real read-only containers with PostgreSQL ledger
+        run: |
+          export NODI_TEST_SANDBOX_IMAGE=$(docker image inspect nodi-readonly:local --format '{{.Id}}')
+          python -m pytest -q tests/integration/test_docker_readonly.py
+      - name: Remove PostgreSQL job's test proxy
+        if: always()
+        run: docker compose -f docker/compose.sandbox.yml down --volumes

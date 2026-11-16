@@ -108,3 +108,12 @@ supported. Prefixes are immutable ledger nodes, not independent budgets. Public
 claims are persisted, while token signatures and signing keys are not. Source edits
 invalidate roots; outbox dispatch also checks persisted root bindings. See the
 [format, configuration and limitations](capabilities.md).
+
+## Ledger storage adapters
+
+SQLite's default `BEGIN IMMEDIATE` and private-file checks now live in `database.py`.
+An optional PostgreSQL URL selects `postgres.py`: READ COMMITTED writers acquire a
+ledger-wide audit-order mutex and SELECT FOR UPDATE on ancestry rows; read views
+use REPEATABLE READ READ ONLY. All budget, request, capability and outbox mutations
+remain inside that boundary. PostgreSQL provides a server-backed ledger, not parallel
+write execution in this design. See [setup, locking rationale and test coverage](postgres.md).

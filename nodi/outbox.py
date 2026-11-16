@@ -66,7 +66,7 @@ class Outbox:
     def _claim(self, outbox_id):
         with self.gateway.transaction() as db:
             row = db.execute('''SELECT * FROM outbox WHERE state IN ('PENDING','UNKNOWN') AND lease_until<=?
-                AND (? IS NULL OR id=?) ORDER BY updated_at,id LIMIT 1''',
+                AND (CAST(? AS TEXT) IS NULL OR id=?) ORDER BY updated_at,id LIMIT 1''',
                 (int(self.gateway.clock()), outbox_id, outbox_id)).fetchone()
             if row is None:
                 return None

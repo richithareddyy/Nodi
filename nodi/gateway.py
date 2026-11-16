@@ -12,7 +12,7 @@ from .intent import Evaluator, Intent, DomainEvaluator
 from .models import Action, Contract
 from .policy import attenuation, checks
 from .domains import get_domain
-from .storage import private_database
+from .database import create_store
 from . import outbox_store, capability_store
 from .capabilities import CapabilityError
 
@@ -28,11 +28,11 @@ class Gateway:
         self.path, self.evaluator, self.clock = path, evaluator or DomainEvaluator(), clock
         self.backend, self.payment_provider = backend, payment_provider
         self.capabilities = capability_keys
-        if payment_provider is not None:
+        if payment_provider is not None and not str(path).startswith(("postgresql://", "postgres://")):
             from pathlib import Path
             if payment_provider.path is not None and Path(self.path).resolve() == Path(payment_provider.path).resolve():
                 raise ValueError("provider and authorization databases must be separate")
-        private_database(self.path, create=True)
+        self.store = create_store(self.path)
         with self.transaction() as db:
             db.executescript('''
                 CREATE TABLE IF NOT EXISTS visas (
@@ -61,40 +61,20 @@ class Gateway:
 
     @contextmanager
     def transaction(self):
-        private_database(self.path)
-        db = sqlite3.connect(self.path, timeout=15, isolation_level=None)
-        db.row_factory = sqlite3.Row
-        db.execute("PRAGMA foreign_keys=ON")
-        try:
-            db.execute("BEGIN IMMEDIATE")
+        with self.store.transaction() as db:
             yield db
-            db.commit()
-        except BaseException:
-            db.rollback()
-            raise
-        finally:
-            db.close()
 
     @contextmanager
     def read_transaction(self):
-        """Consistent read snapshot without reserving the SQLite writer lock."""
-        private_database(self.path)
-        db = sqlite3.connect(self.path, timeout=15, isolation_level=None)
-        db.row_factory = sqlite3.Row
-        try:
-            db.execute("PRAGMA query_only=ON")
-            db.execute("BEGIN")
+        with self.store.transaction(readonly=True) as db:
             yield db
-        finally:
-            db.rollback()
-            db.close()
 
     def _audit(self, db, event: dict) -> None:
         payload = encode({"timestamp": int(self.clock()), **event})
         previous = db.execute("SELECT event_hash FROM audit ORDER BY sequence DESC LIMIT 1").fetchone()
         previous_hash = previous[0] if previous else "0" * 64
         digest = hashlib.sha256((previous_hash + payload).encode()).hexdigest()
-        db.execute("INSERT INTO audit(event,previous_hash,event_hash) VALUES(?,?,?)", (payload, previous_hash, digest))
+        self.store.append_audit(db, payload, previous_hash, digest)
 
     def _chain(self, db, visa_id: str) -> list:
         chain, seen = [], set()
@@ -102,7 +82,7 @@ class Gateway:
             if visa_id in seen or len(chain) > 8:
                 raise ValueError("invalid delegation chain")
             seen.add(visa_id)
-            row = db.execute("SELECT * FROM visas WHERE id=?", (visa_id,)).fetchone()
+            row = db.execute("SELECT * FROM visas WHERE id=?" + getattr(db, "lock_clause", ""), (visa_id,)).fetchone()
             if row is None:
                 raise ValueError("unknown visa")
             chain.append((row, Contract(**json.loads(row["contract"]))))
@@ -313,7 +293,7 @@ class Gateway:
             if decision == "ASK_HUMAN":
                 response["approval_deadline"] = deadline
             response["evaluation_ms"] = round((time.perf_counter() - start) * 1000, 3)
-            db.execute("INSERT INTO requests VALUES(?,?,?,?,?,?,?) ON CONFLICT(principal,id) DO UPDATE SET response=excluded.response, approval=excluded.approval", (principal, action.request_id, fingerprint, encode(action.dictionary()), encode(response), state, deadline))
+            db.execute("INSERT INTO requests(principal,id,fingerprint,action,response,approval,deadline) VALUES(?,?,?,?,?,?,?) ON CONFLICT(principal,id) DO UPDATE SET response=excluded.response, approval=excluded.approval", (principal, action.request_id, fingerprint, encode(action.dictionary()), encode(response), state, deadline))
             self._audit(db, {"event": "authorization", "agent": principal, "action": action.dictionary(),
                             "mission": chain[0][1].mission if chain else None,
                             "delegation_chain": [r["id"] for r, _ in chain], **response})
@@ -322,9 +302,11 @@ class Gateway:
 
     def snapshot(self) -> dict:
         with self.transaction() as db:
+            holds = {row["visa_id"]: (row["amount"], row["actions"]) for row in db.execute(
+                "SELECT visa_id,SUM(amount) AS amount,COUNT(*) AS actions FROM reservations GROUP BY visa_id")}
             return {
-                "visas": [{**dict(r), "reserved_cents": outbox_store.reserved(db, r["id"])[0],
-                           "reserved_actions": outbox_store.reserved(db, r["id"])[1], "contract": json.loads(r["contract"])} for r in db.execute("SELECT * FROM visas ORDER BY issued_at,id")],
+                "visas": [{**dict(r), "reserved_cents": holds.get(r["id"], (0, 0))[0],
+                           "reserved_actions": holds.get(r["id"], (0, 0))[1], "contract": json.loads(r["contract"])} for r in db.execute("SELECT * FROM visas ORDER BY issued_at,id")],
                 "approvals": [{**dict(r), "action": json.loads(r["action"]), "response": json.loads(r["response"])} for r in db.execute("SELECT * FROM requests WHERE approval IN ('pending','approved')")],
                 **({"outbox": [dict(r) for r in db.execute("SELECT * FROM outbox ORDER BY id")],
                     "reservations": [dict(r) for r in db.execute("SELECT * FROM reservations ORDER BY outbox_id,visa_id")]}

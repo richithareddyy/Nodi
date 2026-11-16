@@ -244,7 +244,7 @@ def test_audit_integrity_detects_edit(setup):
     g, _, v, _ = setup
     g.execute("a", action(v))
     assert g.verify_audit()
-    with sqlite3.connect(g.path) as db:
+    with g.transaction() as db:
         db.execute("UPDATE audit SET event='{}' WHERE sequence=1")
     assert not g.verify_audit()
 
@@ -277,8 +277,12 @@ def test_revocation_after_human_approval(setup):
 
 def test_transaction_rolls_back_if_audit_write_fails(setup):
     g, _, v, _ = setup
-    with sqlite3.connect(g.path) as db:
-        db.execute("CREATE TRIGGER audit_failure BEFORE INSERT ON audit BEGIN SELECT RAISE(ABORT, 'disk failure simulation'); END")
+    with g.transaction() as db:
+        if g.store.dialect == 'postgres':
+            db.execute("CREATE FUNCTION fail_audit() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'disk failure simulation'; END $$")
+            db.execute("CREATE TRIGGER audit_failure BEFORE INSERT ON audit FOR EACH ROW EXECUTE FUNCTION fail_audit()")
+        else:
+            db.execute("CREATE TRIGGER audit_failure BEFORE INSERT ON audit BEGIN SELECT RAISE(ABORT, 'disk failure simulation'); END")
     with pytest.raises(sqlite3.Error):
         g.execute("a", buy(v))
     assert not g.snapshot()["effects"]

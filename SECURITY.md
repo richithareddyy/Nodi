@@ -100,3 +100,14 @@ are never stored in audit records. Public claims and stable prefix scopes are
 stored, and repeated offline derivation can create many nodes: rate limits, quotas,
 key custody and secure transport remain deployment responsibilities. See
 [capability assumptions and lifecycle rules](docs/capabilities.md).
+
+## Optional PostgreSQL ledger
+
+The database server, configured schema/role, TLS configuration and pooled connections
+join the trusted computing base. All application writers acquire the shared ledger
+mutex before policy reads and lock ancestry rows. This preserves audit order and
+shared budgets but serializes writes; it is not a throughput or denial-of-service
+solution. No transaction retry may silently repeat a real effect. SQLite file-mode
+protections remain for SQLite only. Agent SQL never enters the PostgreSQL ledger
+adapter. Remote deployment needs least-privilege roles, verified transport, backups
+and operational isolation; see [PostgreSQL assumptions](docs/postgres.md).

@@ -10,6 +10,7 @@ pytest.importorskip("mcp")
 import httpx2
 from mcp import Client, StdioServerParameters
 from nodi.api import ActionBody
+from nodi.gateway import Gateway
 from nodi.mcp_server import GatewayClient, GatewayCallError, create_mcp
 
 TOKEN = "agent-" + "x" * 40
@@ -100,7 +101,7 @@ def test_real_stdio_to_http_approval_replay_and_revocation(tmp_path):
     config_path = tmp_path / "config.json"
     subprocess.run([sys.executable, "-m", "nodi", "init", "--config", str(config_path)], check=True, capture_output=True)
     config = json.loads(config_path.read_text())
-    config["database"] = str(tmp_path / "state.db")
+    config["database"] = Gateway(str(tmp_path / "state.db")).path
     config_path.write_text(json.dumps(config))
     with socket.socket() as sock:
         sock.bind(("127.0.0.1", 0))

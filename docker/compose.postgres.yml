@@ -1,0 +1,18 @@
+# Dedicated local test database. Do not use these sample credentials publicly.
+services:
+  postgres:
+    image: postgres:18-alpine@sha256:b6972e1115a4ff8eba5d7f7d19184926d1e16d7d1136ae1e1a7ebf286da0f015
+    environment:
+      POSTGRES_PASSWORD: local-test-only
+      POSTGRES_DB: nodi
+    ports: ["127.0.0.1:55432:5432"]
+    command: ["postgres", "-c", "max_connections=200"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d nodi"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - postgres-data:/var/lib/postgresql
+volumes:
+  postgres-data:

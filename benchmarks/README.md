@@ -129,3 +129,14 @@ the durable service store; replacements must not silently inherit unresolved wor
 See [state transitions](../docs/outbox.md). No universal exactly-once guarantee is
 claimed. The tests demonstrate one durable controlled effect per key under the
 stated protocol, not atomicity between SQLite and arbitrary external APIs.
+
+## SQLite/PostgreSQL concurrency
+
+`python -m benchmarks.concurrency --output /tmp/nodi-concurrency.json` measures
+10/50/100 workers for shared budgets, exact-approval races and duplicate requests.
+Set `NODI_BENCH_POSTGRES_DSN` to a dedicated local test database and record its
+location with `NODI_BENCH_SERVER_NOTE`. The runner creates/drops only its own unique
+schemas; it makes no external purchases or model calls. Render a report with
+`python -m benchmarks.concurrency_report /tmp/nodi-concurrency.json --output /tmp/nodi-concurrency.md`.
+See [recorded results](results/concurrency/README.md) and the
+[locking and test methodology](../docs/postgres.md).

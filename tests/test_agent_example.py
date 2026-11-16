@@ -11,6 +11,7 @@ from urllib.error import HTTPError
 import pytest
 import httpx
 from nodi.models import draft
+from nodi.gateway import Gateway
 
 SCRIPT = Path(__file__).resolve().parents[1] / 'examples' / 'agent_client.py'
 spec = importlib.util.spec_from_file_location('agent_example', SCRIPT)
@@ -46,7 +47,7 @@ def test_unknown_status_is_read_only():
 
 def test_real_example_retry_status_and_identity(tmp_path):
     config = tmp_path / 'config.json'
-    config.write_text(json.dumps({'admin_token':'x'*40,'agent_tokens':{TOKEN:'a','b'*40:'b'},'database':str(tmp_path/'state.db')}))
+    config.write_text(json.dumps({'admin_token':'x'*40,'agent_tokens':{TOKEN:'a','b'*40:'b'},'database':Gateway(str(tmp_path/'state.db')).path}))
     with socket.socket() as sock:
         sock.bind(('127.0.0.1',0))
         port=sock.getsockname()[1]

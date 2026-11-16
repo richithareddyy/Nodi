@@ -148,7 +148,7 @@ def test_missing_operator_config_fails_cleanly(tmp_path):
 def test_cli_against_real_server(tmp_path):
     import httpx
     config = tmp_path / "config.json"
-    config.write_text(json.dumps({"admin_token": ADMIN, "agent_tokens": {AGENT: "procurement"}, "database": str(tmp_path / "http.db")}))
+    config.write_text(json.dumps({"admin_token": ADMIN, "agent_tokens": {AGENT: "procurement"}, "database": Gateway(str(tmp_path / "http.db")).path}))
     operator_config = tmp_path / "operator.json"
     operator_config.write_text(json.dumps({"admin_token": ADMIN}))
     with socket.socket() as sock:

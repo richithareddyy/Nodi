@@ -95,3 +95,15 @@ is disabled by default and does not replace server-side enforcement.
 ```sh
 python -m nodi.capability_demo
 ```
+
+## Optional PostgreSQL ledger
+
+SQLite remains the default. [PostgreSQL setup and locking design](docs/postgres.md)
+adds a server-backed ledger with the same policy, capability, approval and outbox
+checks. A global audit-order lock still serializes writers; this is not a claim of
+horizontal write scalability. Both backend test matrices run the enforcement and
+invariant suites. [Concurrency measurements](benchmarks/concurrency.py) exercise
+shared-budget, approval and duplicate-request races at 10/50/100 workers.
+[Recorded local results and uncertainty](benchmarks/results/concurrency/README.md)
+include raw samples and deployment/hardware context; they are not production
+capacity estimates.
