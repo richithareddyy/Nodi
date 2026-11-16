@@ -15,3 +15,6 @@ dist/
 .nodi.local.json
 
 .hypothesis/
+
+.nodi.*.local.json
+research-data/

@@ -50,3 +50,11 @@ procurement-only `budget_spent` precondition is rejected for research. Reports a
 an explicit `domain` field and use the selected baseline's name. Existing metrics
 and their regression-only interpretation remain unchanged. Both domains are
 checked by CI and by the installed-wheel script outside the source checkout.
+
+## Optional real tool checks
+
+Docker integration tests are separate from the curated decision datasets; enabling
+real execution does not turn simulated evaluation cases into empirical live-tool
+results. See [reproduction commands and scope](sandbox-execution.md#reproducible-checks).
+CI runs actual container tests; the public HTTPS smoke check is explicitly opt-in.
+These tests establish regression behavior, not statistical security rates.

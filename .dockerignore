@@ -1,0 +1,7 @@
+**
+!nodi
+!nodi/__init__.py
+!nodi/json_input.py
+!nodi/execution
+!nodi/execution/**
+nodi/execution/__pycache__

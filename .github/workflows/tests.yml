@@ -26,3 +26,20 @@ jobs:
       - run: python -m nodi demo
       - run: python -m pip wheel . --no-deps --wheel-dir dist
       - run: python scripts/check_wheel.py dist/nodi-0.1.0-py3-none-any.whl
+
+  docker-readonly:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -e '.[test]' -c requirements.lock
+      - run: docker compose -f docker/compose.sandbox.yml up -d --build --wait
+      - name: Test real read-only containers through the gateway
+        run: |
+          export NODI_TEST_SANDBOX_IMAGE=$(docker image inspect nodi-readonly:local --format '{{.Id}}')
+          python -m pytest -q tests/integration/test_docker_readonly.py
+      - name: Remove test proxy and private socket volume
+        if: always()
+        run: docker compose -f docker/compose.sandbox.yml down --volumes

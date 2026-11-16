@@ -13,7 +13,7 @@ A temporary “mission contract” sets the allowed tools, resources, budget, an
 - Prices and destinations come from the tool adapter, not claims supplied by the agent.
 - Each simulated action, budget update, and audit entry is saved in one SQLite transaction. They either all succeed or all roll back.
 
-Built with **Python, FastAPI, and SQLite**, with an optional MCP bridge. Real payments would need additional handling: a database transaction cannot undo a payment made through an external API.
+Built with **Python, FastAPI, and SQLite**, with an optional MCP bridge and opt-in Docker read-only tools. Real payments would need additional handling: a database transaction cannot undo a payment made through an external API.
 
 ## Run locally
 
@@ -44,6 +44,14 @@ python -m nodi evaluate --domain research
 [Domains and policy files](docs/domains.md) explains scopes, deny patterns, and the
 existing administrator issuance workflow. Research web/file tools use offline
 fixtures and simulated writes; they do not access the network or host filesystem.
+
+## Real read-only tools (local Docker)
+
+The optional [Docker backend](docs/sandbox-execution.md) adds workspace file reads,
+restricted SQLite SELECT queries, fixed diagnostic commands, and approved HTTPS
+GETs through a private egress proxy. Enable it explicitly with a separate `sandbox`
+mission. Existing simulations and the public website keep their current behavior.
+Real writes are deferred until the crash-safe outbox phase.
 
 ## What the tests establish
 

@@ -18,7 +18,7 @@ An explicitly configured semantic service receives mission/action/context. Use a
 
 Audit data contains arguments/context and is not encrypted at the application layer. The gateway creates database files with mode 0600 and checks POSIX ownership, permissions, file type and link count before each connection, including existing SQLite journal/WAL sidecars. Protect host storage and backups. A privileged attacker can rewrite or truncate the local hash chain; it is not an externally anchored ledger.
 
-There are no real payments, MCP Streamable HTTP endpoint, shell tools, arbitrary tool URLs, real filesystem adapters or general-purpose agents. The research domain simulates allowlisted web/file reads and summary writes using fixture data and transactional records only. The optional MCP stdio bridge uses an agent-only credential to call the HTTP gateway; it does not add an authorization bypass or an OS sandbox. Regression tests cannot prove containment for tools that do not exist.
+There are no real payments, MCP Streamable HTTP endpoint, arbitrary shell commands/tool URLs, or general-purpose agents. An explicitly enabled Docker backend supports only bounded real reads; writes require the future outbox design. The research domain simulates allowlisted web/file reads and summary writes using fixture data and transactional records only. The optional MCP stdio bridge uses an agent-only credential to call the HTTP gateway; it does not add an authorization bypass or an OS sandbox. Regression tests cannot prove containment for tools that do not exist.
 
 Before connecting real services, add verified workload identity, provider credentials held only by the gateway, egress isolation, versioned adapter schemas, confirmed costs, reservations/reconciliation, authenticated human sessions, tenant boundaries, rate limits, observability and independent adversarial review.
 
@@ -34,3 +34,20 @@ Domain registration is trusted server code. A stored purpose selects the adapter
 actions and policy files cannot import arbitrary code. Policy files compile deny
 patterns to exact restrictions, retain baseline prohibitions, and never issue or
 execute authority by themselves. See [domain boundaries](docs/domains.md).
+
+## Optional real read boundary
+
+The `sandbox_readonly` domain requires operator-configured Docker execution. The
+Docker daemon, immutable worker image, egress proxy and mount roots join the trusted
+computing base. Agents must have no Docker, host filesystem or private proxy-socket
+access. Workers have no IP network, read-only mounts/root, no capabilities, a nonroot
+user and bounded resources/deadlines. HTTPS requests go only through the private
+proxy, which restricts exact documentation destinations, resolves and validates all
+DNS answers, pins the connected IP, verifies TLS, and refuses redirects.
+
+Real file/SQL reads require exact-action approval. Content remains untrusted even
+when read access is authorized. A read may happen before an audit/commit failure;
+retry can repeat it, and GETs can leave remote access logs. No external atomicity or
+exactly-once guarantee is claimed. The shared writer lock is held during the read;
+this is not a throughput or denial-of-service solution. No real writes are enabled.
+See [setup, restrictions and regression checks](docs/sandbox-execution.md).

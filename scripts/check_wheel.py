@@ -52,6 +52,12 @@ def main():
             raise RuntimeError('installed policy validation failed')
         if command('policy', 'explain', str(policy))['contract']['allowed_tools'] != ['web.fetch']:
             raise RuntimeError('installed policy compilation failed')
+        policy_data = json.loads(policy.read_text())
+        policy_data.update(domain='sandbox', allow=['shell.read'], deny=['filesystem.*'])
+        policy.write_text(json.dumps(policy_data))
+        sandbox = command('policy', 'explain', str(policy))
+        if sandbox['mode'] != 'sandbox-readonly' or sandbox['contract']['purpose'] != 'sandbox_readonly':
+            raise RuntimeError('installed sandbox policy compilation failed')
         demo = command('demo')
         if evaluation['case_count'] != 42 or evaluation['exact_decision_accuracy'] != 1:
             raise RuntimeError('installed evaluation failed')

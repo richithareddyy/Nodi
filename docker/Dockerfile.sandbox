@@ -1,0 +1,8 @@
+FROM python:3.11-slim-bookworm@sha256:a83ba18aef0f865b1a4a611c2cf460fe446f2795673bbb9fe43be570439e3b39
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+WORKDIR /app
+COPY nodi/__init__.py nodi/json_input.py /app/nodi/
+COPY nodi/execution /app/nodi/execution/
+RUN mkdir /egress /workspace /database && chown 65532:65532 /egress
+USER 65532:65532
+ENTRYPOINT ["python", "-B", "-m", "nodi.execution.worker"]

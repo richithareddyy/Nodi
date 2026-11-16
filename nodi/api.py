@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, ConfigDict, Field
 from .gateway import Gateway
+from .execution.docker import ExecutionError
 from .json_input import validate_json
 from .models import Action, Contract, draft
 from .queries import ReadModel, MAX_CURSOR
@@ -101,7 +102,7 @@ def create_app(gateway: Gateway, admin_token: str, agent_tokens: dict[str, str])
     """Tokens map to identities on the server, never from request agent_id fields."""
     if len(admin_token) < 32 or not agent_tokens or any(type(k) is not str or len(k) < 32 or type(v) is not str or not v for k, v in agent_tokens.items()) or admin_token in agent_tokens:
         raise ValueError("distinct admin/agent credentials of at least 32 characters required")
-    app = FastAPI(title="Nodi", version="0.1.0", description="Mission-scoped authorization and simulated protected execution.")
+    app = FastAPI(title="Nodi", version="0.1.0", description="Mission-scoped authorization. Simulation by default, with optional Docker read-only execution.")
     from .dashboard import install_dashboard
     install_dashboard(app)
     app.add_middleware(BodyLimit)
@@ -136,9 +137,13 @@ def create_app(gateway: Gateway, admin_token: str, agent_tokens: dict[str, str])
     async def unavailable(_request: Request, _exc: Exception):
         return JSONResponse({"detail": "authorization store unavailable; execution not confirmed"}, status_code=503)
 
+    @app.exception_handler(ExecutionError)
+    async def read_failed(_request: Request, exc: Exception):
+        return JSONResponse({"detail": str(exc)}, status_code=503)
+
     @app.get("/health")
     def health():
-        return {"status": "ok", "mode": "simulation"}
+        return {"status": "ok", "mode": "simulation+sandbox-readonly" if gateway.backend else "simulation"}
 
     @app.post("/drafts", dependencies=[Depends(admin)])
     def draft_contract(body: MissionDraft):
@@ -234,4 +239,6 @@ def from_environment() -> FastAPI:
             raise ValueError("agent credentials must be a JSON object")
     except (KeyError, ValueError) as exc:
         raise RuntimeError("Set NODI_ADMIN_TOKEN and NODI_AGENT_TOKENS before startup") from exc
-    return create_app(Gateway(os.environ.get("NODI_DB", "nodi.db")), admin_token, agents)
+    from .execution.docker import from_config
+    backend = from_config(json.loads(os.environ["NODI_SANDBOX"]) if "NODI_SANDBOX" in os.environ else None)
+    return create_app(Gateway(os.environ.get("NODI_DB", "nodi.db"), backend=backend), admin_token, agents)

@@ -1,0 +1,11 @@
+{
+  "mission": "Read approved research data and public documentation.",
+  "domain": "sandbox",
+  "agent_id": "researcher",
+  "allow": ["filesystem.read", "http.get", "sqlite.query", "shell.read"],
+  "deny": ["filesystem.write", "shell.exec"],
+  "budget": {"max_usd": 0, "max_transaction_usd": 0},
+  "delegation": {"max_depth": 1},
+  "approval": {"purchase_above_usd": 0},
+  "expires_in": "1h"
+}

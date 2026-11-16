@@ -1,0 +1,26 @@
+# Private Unix socket is the sole worker egress path. No published ports.
+services:
+  egress:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.sandbox
+    image: nodi-readonly:local
+    entrypoint: ["python", "-B", "-m", "nodi.execution.egress"]
+    read_only: true
+    user: "65532:65532"
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    cpus: 0.5
+    mem_limit: 128m
+    memswap_limit: 128m
+    pids_limit: 16
+    volumes:
+      - egress:/egress
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os; assert os.path.exists('/egress/proxy.sock')"]
+      interval: 5s
+      timeout: 2s
+      retries: 5
+volumes:
+  egress:
+    name: nodi-egress-local

@@ -100,7 +100,7 @@ def compile_policy(value, *, now=None, agent_id=None):
                        approval_threshold=cents(approval["purchase_above_usd"]),
                        delegation_depth=delegation["max_depth"], max_actions=max_actions,
                        expires_at=now + duration(value["expires_in"]))
-    return {"domain": domain.name, "contract": contract.dictionary(), "mode": "simulation",
+    return {"domain": domain.name, "contract": contract.dictionary(), "mode": "sandbox-readonly" if domain.name == "sandbox" else "simulation",
             "effective_tools": effective, "blocked_tools": sorted(blocked),
             "unmatched_deny_patterns": [pattern for pattern in denied
                                         if not any(fnmatchcase(name, pattern) for name in accepted)],

@@ -22,8 +22,9 @@ def encode(value) -> str:
 
 
 class Gateway:
-    def __init__(self, path: str, evaluator: Evaluator | None = None, clock: Callable = time.time):
+    def __init__(self, path: str, evaluator: Evaluator | None = None, clock: Callable = time.time, *, backend=None):
         self.path, self.evaluator, self.clock = path, evaluator or DomainEvaluator(), clock
+        self.backend = backend
         private_database(self.path, create=True)
         with self.transaction() as db:
             db.executescript('''
@@ -196,6 +197,8 @@ class Gateway:
                 chain = self._chain(db, action.visa_id)
                 if chain[0][1].agent_id != principal:
                     raise ValueError("visa identity does not match authenticated caller")
+                if chain[0][1].purpose == "sandbox_readonly" and self.backend is None:
+                    raise ValueError("Docker read-only backend is not enabled")
                 prepared = get_domain(chain[0][1].purpose).prepare(action)
                 policy_start = time.perf_counter()
                 for depth, (row, contract) in enumerate(chain):
@@ -246,7 +249,16 @@ class Gateway:
                         "cost_cents": prepared.cost if prepared else None, "policy_ms": round(policy_ms, 4)}
             if decision == "ALLOW":
                 effect_id = uuid4().hex
-                result = {"simulation": True, **prepared.result}
+                if chain[0][1].purpose == "sandbox_readonly":
+                    from .execution.docker import ExecutionError
+                    expires_at = min(c.expires_at for _, c in chain)
+                    if approved:
+                        expires_at = min(expires_at, deadline)
+                    result = self.backend.execute(action, expires_at)
+                    if int(self.clock()) >= expires_at:
+                        raise ExecutionError("Authority expired during read; result not committed")
+                else:
+                    result = {"simulation": True, **prepared.result}
                 db.execute("INSERT INTO effects VALUES(?,?,?,?,?)", (effect_id, principal, action.request_id, action.tool, encode(result)))
                 for row, _ in chain:
                     db.execute("UPDATE visas SET spent=spent+?, actions=actions+1 WHERE id=?", (prepared.cost, row["id"]))

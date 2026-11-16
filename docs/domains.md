@@ -9,12 +9,12 @@ usage accounting and audit. Approval cannot override a hard denial.
 
 [Domain](../nodi/domains/base.py) declares a name, canonical purpose, closed tool
 argument shapes, trusted metadata, tools/resources, `prepare(action) -> Prepared`,
-an intent evaluator, a default contract, an evaluation dataset and a setup action.
+an intent evaluator, a default contract, an optional evaluation dataset and a setup action. The real sandbox domain uses Docker integration tests instead of a simulated dataset.
 Preparation validates value types, sizes and destinations as well as required and
 optional argument keys. It computes trusted cost and impact but performs **no I/O
 or external effect**. The gateway alone writes simulated effects.
 
-The server-owned [registry](../nodi/domains/__init__.py) explicitly registers two
+The server-owned [registry](../nodi/domains/__init__.py) explicitly registers three
 implementations. To add a domain, implement that interface, register its reviewed
 name/purpose, and provide adapter, intent, policy and evaluation tests. There is no
 runtime loading of arbitrary plugins from agent requests or policy files. Python
@@ -24,6 +24,7 @@ plugin code is trusted operator code, not a security sandbox.
 | --- | --- | --- |
 | `procurement` | `monitor_procurement` | [Procurement plugin](../nodi/domains/procurement/domain.py) |
 | `research` | `research_assistant` | [Research plugin](../nodi/domains/research/domain.py) |
+| `sandbox` | `sandbox_readonly` | [Opt-in Docker reads](sandbox-execution.md) |
 
 Existing procurement contracts retain their original shape, tool IDs, defaults
 and purpose; no ledger migration is needed. `nodi.tools` and `nodi.intent` retain
@@ -62,7 +63,7 @@ Required fields:
 | Field | Meaning |
 | --- | --- |
 | `mission` | Nonblank mission description, subject to the contract's length bound |
-| `domain` | Registered public name, `procurement` or `research` |
+| `domain` | Registered public name, `procurement`, `research`, or `sandbox` |
 | `allow` | Exact domain tool IDs or documented aliases; no allow globs |
 | `deny` | Case-sensitive shell-style tool globs (`*`, `?`, character classes) |
 | `budget` | `max_usd` and `max_transaction_usd`, nonnegative exact-cent amounts, each at most one billion USD |
@@ -133,7 +134,7 @@ read that effect as a mutable filesystem. Its response is marked `simulation`.
 
 This is a second enforcement domain, not real filesystem confinement or SSRF
 protection. No DNS resolution, HTTP fetch, host file read/write or shell execution
-occurs. Those belong to Phase 3, with its separate isolation requirements. The
+occurs. The separate opt-in Phase 3 domain provides real reads with [Docker isolation](sandbox-execution.md); this research simulation stays unchanged. Real writes remain deferred. The
 research intent baseline is deliberately bounded: trusted fixture reads may run;
 free-form summary text requires human review. It is not a general mission-relevance
 classifier or protection against malicious content from arbitrary sources.

@@ -6,7 +6,7 @@ if TYPE_CHECKING:
     from .base import Domain
 
 
-@lru_cache(maxsize=4)
+@lru_cache(maxsize=6)
 def get_domain(name: str) -> "Domain":
     if name in ("procurement", "monitor_procurement"):
         from .procurement.domain import ProcurementDomain
@@ -14,4 +14,7 @@ def get_domain(name: str) -> "Domain":
     if name in ("research", "research_assistant"):
         from .research.domain import ResearchDomain
         return ResearchDomain()
+    if name in ("sandbox", "sandbox_readonly"):
+        from .readonly import ReadOnlyDomain
+        return ReadOnlyDomain()
     raise ValueError("unknown domain or purpose")
