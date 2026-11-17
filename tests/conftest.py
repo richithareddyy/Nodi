@@ -40,6 +40,8 @@ def postgres_ledgers(request, monkeypatch):
         original(self,value,*args,**kwargs)
     monkeypatch.setattr(Gateway,'__init__',initialize)
     yield
-    with psycopg.connect(target) as db:
+    # Release DDL locks after each schema; property tests create hundreds.
+    # A single cleanup transaction can exhaust the default server lock table.
+    with psycopg.connect(target, autocommit=True) as db:
         for schema in schemas:
             db.execute(psycopg.sql.SQL('DROP SCHEMA {} CASCADE').format(psycopg.sql.Identifier(schema)))
