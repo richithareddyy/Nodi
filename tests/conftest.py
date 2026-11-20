@@ -1,7 +1,10 @@
 """Bounded local generation and deterministic CI; override for deeper exploration."""
 
+import hashlib
 import os
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
+import pytest
 from hypothesis import settings
 
 settings.register_profile("nodi", max_examples=60, stateful_step_count=60, deadline=None)
@@ -20,12 +23,6 @@ settings.load_profile(os.environ.get("HYPOTHESIS_PROFILE", "nodi"))
 # Test-only routing: production never interprets this environment variable.
 # File-permission/SQLite worker fixtures remain SQLite; portable ledger fixtures use
 # isolated PostgreSQL schemas. Child crash workers receive the explicit DSN in g.path.
-import hashlib
-from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
-
-import pytest
-
-
 @pytest.fixture(autouse=True)
 def postgres_ledgers(request, monkeypatch):
     target = os.environ.get("NODI_TEST_POSTGRES_DSN")
