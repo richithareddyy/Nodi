@@ -17,7 +17,10 @@ def files(tmp_path):
     (tmp_path / "notes" / "source.txt").write_text("A bounded source.")
     db = sqlite3.connect(tmp_path / "test.db")
     db.executescript(
-        "CREATE TABLE articles(title TEXT); INSERT INTO articles VALUES ('SQLite'); CREATE TABLE secrets(value TEXT);"
+        (
+            "CREATE TABLE articles(title TEXT); INSERT INTO articles "
+            "VALUES ('SQLite'); CREATE TABLE secrets(value TEXT);"
+        )
     )
     db.close()
     return tmp_path

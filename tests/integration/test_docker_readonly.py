@@ -168,7 +168,8 @@ import json, socket, time
 s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 s.settimeout(5)
 s.connect('/egress/proxy.sock')
-s.sendall(json.dumps({'url': 'https://127.0.0.1/', 'expires_at': int(time.time()) + 10}).encode() + b'\\n')
+payload = {'url': 'https://127.0.0.1/', 'expires_at': int(time.time()) + 10}
+s.sendall(json.dumps(payload).encode() + b'\\n')
 print(s.makefile().readline())
 """
     response = subprocess.run(
