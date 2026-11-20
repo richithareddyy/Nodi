@@ -1,5 +1,6 @@
 """Generated interleavings independently compare provider charges and ledger holds."""
 
+import contextlib
 import tempfile
 from dataclasses import replace
 
@@ -89,10 +90,8 @@ class PaymentMachine(RuleBasedStateMachine):
         if not pending:
             return
         row = pending[index % len(pending)]
-        try:
+        with contextlib.suppress(ValueError):
             self.gateway.approve(row["principal"], row["id"], approve)
-        except ValueError:
-            pass
 
     @rule(index=st.integers(0, 99), conflict=st.booleans())
     def replay(self, index, conflict):
@@ -121,10 +120,8 @@ class PaymentMachine(RuleBasedStateMachine):
             if current == stage:
                 raise ProcessCrash()
 
-        try:
+        with contextlib.suppress(ProcessCrash):
             Outbox(self.gateway, fault=crash).run_once()
-        except ProcessCrash:
-            pass
 
     @rule(index=st.integers(0, 29))
     def revoke(self, index):

@@ -79,10 +79,9 @@ def test_audit_export_remains_contiguous_after_rollback(tmp_path):
 
     gateway = Gateway(str(tmp_path / "rollback.db"))
     gateway.issue(Contract("one", "Buy monitors"))
-    with pytest.raises(RuntimeError):
-        with gateway.transaction() as db:
-            gateway._audit(db, {"event": "rolled_back"})
-            raise RuntimeError("controlled transaction abort")
+    with pytest.raises(RuntimeError), gateway.transaction() as db:
+        gateway._audit(db, {"event": "rolled_back"})
+        raise RuntimeError("controlled transaction abort")
     gateway.issue(Contract("two", "Buy monitors"))
     verifier = Verifier(ReadModel(gateway).checkpoint())
     for row in gateway.snapshot()["audit"]:

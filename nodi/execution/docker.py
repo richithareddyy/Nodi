@@ -1,5 +1,6 @@
 """Trusted Docker launcher. No agent-controlled flags, images, mounts or commands."""
 
+import contextlib
 import json
 import re
 import subprocess
@@ -92,18 +93,14 @@ class DockerBackend:
             return {"simulation": False, "backend": "docker-readonly", **response["result"]}
         except (OSError, ValueError, TypeError, subprocess.SubprocessError, RecursionError):
             raise ExecutionError(
-                (
-                    "Sandbox read failed; no successful result committed. A read "
-                    "may have occurred; retry the same request ID."
-                )
+                "Sandbox read failed; no successful result committed. A read "
+                "may have occurred; retry the same request ID."
             ) from None
         finally:
             # Killing only the CLI does not reliably terminate its container.
             # The worker also has an independent wall-clock alarm if Docker is lost.
-            try:
+            with contextlib.suppress(OSError, subprocess.SubprocessError):
                 subprocess.run(["docker", "rm", "-f", name], capture_output=True, timeout=3)
-            except (OSError, subprocess.SubprocessError):
-                pass
 
 
 def from_config(value):

@@ -110,24 +110,27 @@ class Model:
             raise ProviderError("conversation exceeds request bound")
         try:
             async with asyncio.timeout(60):
-                async with httpx2.AsyncClient(
-                    trust_env=False, follow_redirects=False, timeout=45, transport=self.transport
-                ) as http:
-                    async with http.stream(
+                async with (
+                    httpx2.AsyncClient(
+                        trust_env=False,
+                        follow_redirects=False,
+                        timeout=45,
+                        transport=self.transport,
+                    ) as http,
+                    http.stream(
                         "POST",
                         url,
                         content=raw_request,
                         headers={**headers, "Content-Type": "application/json"},
-                    ) as response:
-                        if response.status_code != 200:
-                            raise ProviderError(
-                                f"model endpoint returned HTTP {response.status_code}"
-                            )
-                        raw = bytearray()
-                        async for chunk in response.aiter_bytes(chunk_size=16384):
-                            raw.extend(chunk)
-                            if len(raw) > 262144:
-                                raise ProviderError("model response too large")
+                    ) as response,
+                ):
+                    if response.status_code != 200:
+                        raise ProviderError(f"model endpoint returned HTTP {response.status_code}")
+                    raw = bytearray()
+                    async for chunk in response.aiter_bytes(chunk_size=16384):
+                        raw.extend(chunk)
+                        if len(raw) > 262144:
+                            raise ProviderError("model response too large")
             validate_json(bytes(raw))
             data = json.loads(raw)
             if self.provider == "openai":

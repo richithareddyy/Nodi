@@ -95,7 +95,7 @@ def test_approval_mutation_between_pages(data):
 
 def test_visas_page_uses_stable_insert_order(data):
     g, reads, _, now = data
-    for i in range(4):
+    for _i in range(4):
         g.issue(draft("Buy a monitor under $300.", "other", now[0]))
     first = reads.visas(agent="other", limit=2)
     second = reads.visas(
@@ -128,9 +128,8 @@ def test_read_connection_forbids_writes_and_indexes_are_repeatable(data):
 
     g, _, _, _ = data
     ReadModel(g)
-    with g.read_transaction() as db:
-        with pytest.raises(sqlite3.OperationalError):
-            db.execute("DELETE FROM audit")
+    with g.read_transaction() as db, pytest.raises(sqlite3.OperationalError):
+        db.execute("DELETE FROM audit")
 
 
 def test_read_pages_do_not_call_legacy_snapshot(data, monkeypatch):

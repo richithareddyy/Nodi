@@ -18,7 +18,7 @@ def public_addresses(host):
     addresses = socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM)
     if not addresses:
         raise ValueError("DNS returned no addresses")
-    for family, kind, protocol, _, address in addresses:
+    for family, _kind, _protocol, _, address in addresses:
         ip = ipaddress.ip_address(address[0])
         if (
             not ip.is_global

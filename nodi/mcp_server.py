@@ -66,10 +66,14 @@ class GatewayClient:
             raise GatewayCallError("Action exceeds gateway size limit; no request sent")
         try:
             async with asyncio.timeout(10):
-                async with httpx2.AsyncClient(
-                    transport=self._transport, trust_env=False, follow_redirects=False, timeout=5.0
-                ) as client:
-                    async with client.stream(
+                async with (
+                    httpx2.AsyncClient(
+                        transport=self._transport,
+                        trust_env=False,
+                        follow_redirects=False,
+                        timeout=5.0,
+                    ) as client,
+                    client.stream(
                         "POST",
                         self.endpoint,
                         content=encoded,
@@ -77,25 +81,25 @@ class GatewayClient:
                             "Authorization": "Bearer " + self._token,
                             "Content-Type": "application/json",
                         },
-                    ) as response:
-                        if response.status_code in (401, 403, 413, 422):
+                    ) as response,
+                ):
+                    if response.status_code in (401, 403, 413, 422):
+                        raise GatewayCallError(
+                            f"Gateway rejected request (HTTP {response.status_code}); no execution"
+                        )
+                    if response.status_code != 200:
+                        raise GatewayCallError(
+                            "Gateway result unavailable; execution outcome is unknown. "
+                            "Retry the same request_id"
+                        )
+                    data = bytearray()
+                    async for chunk in response.aiter_bytes(chunk_size=16384):
+                        data.extend(chunk)
+                        if len(data) > 262144:
                             raise GatewayCallError(
-                                f"Gateway rejected request (HTTP {response.status_code}); "
-                                f"no execution"
+                                "Gateway response too large; outcome unknown. Retry "
+                                "the same request_id"
                             )
-                        if response.status_code != 200:
-                            raise GatewayCallError(
-                                "Gateway result unavailable; execution outcome is unknown. "
-                                "Retry the same request_id"
-                            )
-                        data = bytearray()
-                        async for chunk in response.aiter_bytes(chunk_size=16384):
-                            data.extend(chunk)
-                            if len(data) > 262144:
-                                raise GatewayCallError(
-                                    "Gateway response too large; outcome unknown. Retry "
-                                    "the same request_id"
-                                )
             result = json.loads(data)
             if (
                 not isinstance(result, dict)

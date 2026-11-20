@@ -1,5 +1,6 @@
 """Generated offline token trees and lifecycle histories preserve ledger invariants."""
 
+import contextlib
 import tempfile
 from dataclasses import replace
 
@@ -138,15 +139,13 @@ class CapabilityHistory(RuleBasedStateMachine):
         token, scope, action = data.draw(st.sampled_from(self.requests))
         if conflict:
             before = self.gateway.snapshot()["effects"]
-            try:
+            with contextlib.suppress(CapabilityError):
                 assert (
                     self.gateway.execute_capability(token, replace(action, context="different"))[
                         "decision"
                     ]
                     == "DENY"
                 )
-            except CapabilityError:
-                pass
             assert self.gateway.snapshot()["effects"] == before
         else:
             self.submit(token, scope, action)
