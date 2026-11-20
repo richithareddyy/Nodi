@@ -1,6 +1,6 @@
 """Procurement preparation; effects remain SQLite records in the gateway."""
-from ...models import Action, integer, text
 from ...domain_types import Prepared
+from ...models import Action, integer, text
 from .metadata import CATALOG, SCHEMAS
 
 

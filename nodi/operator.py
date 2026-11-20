@@ -2,9 +2,9 @@
 import argparse
 import json
 import os
-from pathlib import Path
 import re
 import sys
+from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlencode
 from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
@@ -104,7 +104,7 @@ def parser():
 def run(args, client: ControlClient):
     command = args.command
     if command in ("checkpoint", "export-audit"):
-        from .audit_export import save_checkpoint, export_audit
+        from .audit_export import export_audit, save_checkpoint
         if command == "checkpoint":
             return save_checkpoint(client, args.output)
         return export_audit(client, args.checkpoint, args.output)

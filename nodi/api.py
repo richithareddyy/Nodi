@@ -1,22 +1,24 @@
 """Authenticated HTTP boundary. Protected adapters are never exposed as routes."""
 import asyncio
-import math
-from time import monotonic
 import hmac
 import json
+import math
 import os
 import sqlite3
+from time import monotonic
 from typing import Literal
-from fastapi import Body, Depends, FastAPI, HTTPException, Request, Query
+
+from fastapi import Body, Depends, FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, ConfigDict, Field
-from .gateway import Gateway
-from .capabilities import CapabilityError, PREFIX
+
+from .capabilities import PREFIX, CapabilityError
 from .execution.docker import ExecutionError
+from .gateway import Gateway
 from .json_input import validate_json
 from .models import Action, Contract, draft
-from .queries import ReadModel, MAX_CURSOR
+from .queries import MAX_CURSOR, ReadModel
 
 
 class StrictModel(BaseModel):

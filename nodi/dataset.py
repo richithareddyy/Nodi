@@ -1,11 +1,12 @@
 """Validate the entire evaluation dataset before creating any simulation state."""
-import json
 import hashlib
+import json
 import re
 from dataclasses import dataclass, replace
+
+from .domains import get_domain
 from .json_input import validate_json
 from .models import Action
-from .domains import get_domain
 
 MAX_DATASET_BYTES = 4 * 1024 * 1024
 

@@ -2,9 +2,9 @@
 import argparse
 import json
 import os
-from pathlib import Path
 import secrets
 import sys
+from pathlib import Path
 
 
 def main():
@@ -27,6 +27,7 @@ def main():
         print(f"Created {args.config} with owner-only permissions. Keep credentials private.")
     elif args.command == "serve":
         import uvicorn
+
         from .api import create_app
         from .gateway import Gateway
         from .semantic import SemanticReviewer

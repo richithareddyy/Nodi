@@ -1,7 +1,8 @@
 """Six independent demo scenarios, all running through the gateway."""
-from dataclasses import replace
 import json
 import tempfile
+from dataclasses import replace
+
 from .gateway import Gateway
 from .models import Action, draft
 

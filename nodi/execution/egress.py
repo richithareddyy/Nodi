@@ -8,8 +8,9 @@ import socket
 import socketserver
 import ssl
 import time
-from .validation import MAX_CONTENT, MAX_RESULT, destination
+
 from ..json_input import validate_json
+from .validation import MAX_CONTENT, MAX_RESULT, destination
 
 
 def public_addresses(host):

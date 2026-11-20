@@ -1,9 +1,9 @@
 """Procurement is one registered domain; legacy tool IDs remain unchanged."""
 from ...models import Action
 from .contracts import draft
+from .intent import ProcurementEvaluator
 from .metadata import CATALOG, RESOURCES, SCHEMAS, TOOLS
 from .tools import prepare
-from .intent import ProcurementEvaluator
 
 
 class ProcurementDomain:

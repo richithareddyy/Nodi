@@ -1,5 +1,6 @@
 """Bounded operator reads using keyset pagination and a captured upper bound."""
 import json
+
 from .gateway import Gateway
 from .outbox_store import reserved
 
@@ -70,8 +71,8 @@ class ReadModel:
     def request_status(self, principal, request_id, *, capability=None):
         with self.gateway.read_transaction() as db:
             if capability is not None:
-                from .capability_store import root_binding, request_binding
                 from .capabilities import CapabilityError
+                from .capability_store import request_binding, root_binding
                 root_binding(self.gateway, db, capability.data['root'])
                 root_id = request_binding(self.gateway, db, principal, request_id)
                 if root_id != capability.data['root']['id']:

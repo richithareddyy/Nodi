@@ -1,6 +1,7 @@
 """Backward-compatible bounded monitor mission drafting."""
 import re
 import time
+
 from ...models import Contract
 
 

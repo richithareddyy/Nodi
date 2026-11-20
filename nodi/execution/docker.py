@@ -1,11 +1,12 @@
 """Trusted Docker launcher. No agent-controlled flags, images, mounts or commands."""
 import json
-from pathlib import Path
 import re
 import subprocess
+from pathlib import Path
 from uuid import uuid4
-from .validation import MAX_RESULT, validate
+
 from ..json_input import validate_json
+from .validation import MAX_RESULT, validate
 
 
 class ExecutionError(RuntimeError):

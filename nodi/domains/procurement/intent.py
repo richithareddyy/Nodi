@@ -1,7 +1,8 @@
 """Original procurement intent baseline, unchanged."""
 import re
-from ...models import Action, Contract
+
 from ...domain_types import Intent, Prepared
+from ...models import Action, Contract
 
 
 class ProcurementEvaluator:

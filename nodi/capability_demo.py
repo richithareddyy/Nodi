@@ -1,11 +1,12 @@
 """Offline delegation with shared ledger limits; all effects are simulated."""
-from dataclasses import replace
 import json
 import secrets
 import tempfile
-from .capabilities import Keys, CapabilityError, attenuate, describe
-from .gateway import Gateway
+from dataclasses import replace
+
+from .capabilities import CapabilityError, Keys, attenuate, describe
 from .domains import get_domain
+from .gateway import Gateway
 from .models import Action
 
 

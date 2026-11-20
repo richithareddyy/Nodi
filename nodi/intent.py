@@ -1,6 +1,7 @@
 """Domain-dispatched baseline and backward-compatible evaluator imports."""
-from .domain_types import Evaluator, Intent
-from .domains.procurement.intent import ProcurementEvaluator
+from .domain_types import Evaluator as Evaluator
+from .domain_types import Intent as Intent
+from .domains.procurement.intent import ProcurementEvaluator as ProcurementEvaluator
 
 
 class DomainEvaluator:

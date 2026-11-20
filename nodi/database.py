@@ -1,7 +1,8 @@
 """Ledger transaction adapters. SQLite remains the dependency-free default."""
-from contextlib import contextmanager
 import os
 import sqlite3
+from contextlib import contextmanager
+
 from .storage import private_database
 
 

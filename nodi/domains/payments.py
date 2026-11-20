@@ -1,8 +1,8 @@
 """Explicit mock-payment domain; existing procurement visas remain simulations."""
 from ..models import Contract
+from .procurement.intent import ProcurementEvaluator
 from .procurement.metadata import CATALOG, SCHEMAS
 from .procurement.tools import prepare
-from .procurement.intent import ProcurementEvaluator
 
 
 class PaymentDomain:

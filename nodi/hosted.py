@@ -1,6 +1,7 @@
 """Environment-only entry point for a single-instance hosted demonstration."""
 import os
 from pathlib import Path
+
 from .api import create_app
 from .gateway import Gateway
 

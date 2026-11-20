@@ -4,12 +4,13 @@ This versioned format uses the macaroon attenuation construction, not the macaro
 or Biscuit wire format. It has no third-party caveats or public-key verification.
 """
 import base64
-from dataclasses import dataclass
 import hashlib
 import hmac
 import json
 import re
+from dataclasses import dataclass
 from uuid import uuid4
+
 from .json_input import validate_json
 from .models import Contract
 from .policy import attenuation

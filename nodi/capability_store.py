@@ -1,5 +1,6 @@
 """Materialize verified offline scopes under shared ledger ancestors, atomically."""
 import json
+
 from .capabilities import CapabilityError, contract, encoded, node_ids
 
 SCHEMA = '''

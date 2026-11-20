@@ -3,14 +3,14 @@
 Only static application SQL is adapted here; tool-supplied SQL never enters this
 adapter. All data values remain driver parameters. No transaction/effect retries.
 """
-from contextlib import contextmanager
-from decimal import Decimal
 import atexit
 import os
-import threading
 import re
 import sqlite3
-from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
+import threading
+from contextlib import contextmanager
+from decimal import Decimal
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 
 class StoreError(sqlite3.OperationalError):

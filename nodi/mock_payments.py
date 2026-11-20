@@ -1,11 +1,12 @@
 """Durable test provider, independent of the authorization ledger. No real money."""
-from contextlib import contextmanager
 import hashlib
 import json
 import os
 import re
 import sqlite3
+from contextlib import contextmanager
 from uuid import uuid4
+
 from .storage import private_database
 
 

@@ -8,8 +8,9 @@ import stat
 import subprocess
 import sys
 import time
-from .validation import COMMANDS, MAX_CONTENT, MAX_RESULT, relative_path, validate
+
 from ..json_input import validate_json
+from .validation import COMMANDS, MAX_CONTENT, MAX_RESULT, relative_path, validate
 
 
 def read_file(root, relative, limit=MAX_CONTENT):

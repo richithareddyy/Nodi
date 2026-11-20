@@ -1,7 +1,7 @@
 """Explicit opt-in domain for Docker reads; never silently simulated."""
 from ..domain_types import Intent, Prepared
-from ..models import Contract, Action
-from ..execution.validation import SCHEMAS, RESOURCES, URLS, COMMANDS, validate
+from ..execution.validation import COMMANDS, RESOURCES, SCHEMAS, URLS, validate
+from ..models import Action, Contract
 
 
 class ReadOnlyEvaluator:

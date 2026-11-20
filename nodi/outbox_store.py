@@ -1,6 +1,7 @@
 """Reservation and settlement operations inside the gateway's existing transaction."""
 import json
 from uuid import uuid4
+
 from .mock_payments import encoded, payload_hash
 
 SCHEMA = '''

@@ -1,12 +1,12 @@
 """Strict JSON policy compilation to ordinary server-stored contracts."""
 import argparse
-from dataclasses import replace
-from decimal import Decimal, localcontext
-from fnmatch import fnmatchcase
 import json
 import re
 import sys
 import time
+from dataclasses import replace
+from decimal import Decimal, localcontext
+from fnmatch import fnmatchcase
 
 from .domains import get_domain
 from .json_input import validate_json

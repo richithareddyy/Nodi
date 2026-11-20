@@ -6,8 +6,9 @@ or credentials are exposed to the agent.
 """
 import json
 from urllib.parse import urlsplit
-from urllib.request import Request, build_opener, HTTPRedirectHandler
-from .intent import Intent, DomainEvaluator
+from urllib.request import HTTPRedirectHandler, Request, build_opener
+
+from .intent import DomainEvaluator, Intent
 
 
 class NoRedirect(HTTPRedirectHandler):

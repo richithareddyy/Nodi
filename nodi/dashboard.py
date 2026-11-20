@@ -1,5 +1,6 @@
 """Public static dashboard; all data and mutations use authenticated API routes."""
 from importlib.resources import files
+
 from fastapi import HTTPException
 from fastapi.responses import Response
 

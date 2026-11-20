@@ -1,8 +1,10 @@
 """Shared domain result types; preparing an action never executes it."""
-from dataclasses import asdict, dataclass
 import math
+from dataclasses import asdict, dataclass
 from typing import Protocol
+
 from .models import Action, Contract, Decision
+
 
 @dataclass(frozen=True)
 class Prepared:

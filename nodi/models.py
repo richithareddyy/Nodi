@@ -1,10 +1,11 @@
 """Strict contracts. Money is always integer USD cents; resources are exact IDs."""
-from dataclasses import asdict, dataclass, field
 import re
 import time
+from dataclasses import asdict, dataclass, field
 from typing import Any, Literal
 
-from .domains.procurement.metadata import TOOLS, RESOURCES
+from .domains.procurement.metadata import RESOURCES as RESOURCES
+from .domains.procurement.metadata import TOOLS as TOOLS
 
 Decision = Literal["ALLOW", "DENY", "ASK_HUMAN"]
 

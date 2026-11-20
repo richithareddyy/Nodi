@@ -1,16 +1,17 @@
 """Repeatable labeled fixture evaluation; no claim of generalization."""
-from collections import Counter
-from dataclasses import replace
-from importlib.resources import files
-from pathlib import Path
 import platform
 import statistics
 import tempfile
 import time
-from .gateway import Gateway
+from collections import Counter
+from dataclasses import replace
+from importlib.resources import files
+from pathlib import Path
+
 from .dataset import load_dataset
-from .models import Action
 from .domains import get_domain
+from .gateway import Gateway
+from .models import Action
 
 
 def percentile(values, proportion):

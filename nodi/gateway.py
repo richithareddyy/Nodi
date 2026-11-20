@@ -1,20 +1,20 @@
 """Transactional authorization, approvals, budgets and simulated tool effects."""
-from contextlib import contextmanager
 import hashlib
 import hmac
 import json
 import logging
-import sqlite3
 import time
-from typing import Callable
+from collections.abc import Callable
+from contextlib import contextmanager
 from uuid import uuid4
-from .intent import Evaluator, Intent, DomainEvaluator
+
+from . import capability_store, outbox_store
+from .capabilities import CapabilityError
+from .database import create_store
+from .domains import get_domain
+from .intent import DomainEvaluator, Evaluator, Intent
 from .models import Action, Contract
 from .policy import attenuation, checks
-from .domains import get_domain
-from .database import create_store
-from . import outbox_store, capability_store
-from .capabilities import CapabilityError
 
 logger = logging.getLogger("nodi.decisions")
 
