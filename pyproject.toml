@@ -22,3 +22,10 @@ testpaths = ["tests"]
 
 [tool.setuptools.package-data]
 nodi = ["data/*.json", "web/*.html", "web/*.css", "web/*.js", "web/*.svg", "web/*.png", "web/*.ico"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
