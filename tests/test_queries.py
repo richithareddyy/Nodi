@@ -12,7 +12,16 @@ def data(tmp_path):
     reads = ReadModel(g)
     visa = g.issue(draft("Buy a monitor under $300.", "a", now[0]))["visa_id"]
     for i in range(8):
-        g.execute("a", Action(str(i), visa, "purchase", "vendor:approved", {"product_id": "monitor-pro", "quantity": 1}))
+        g.execute(
+            "a",
+            Action(
+                str(i),
+                visa,
+                "purchase",
+                "vendor:approved",
+                {"product_id": "monitor-pro", "quantity": 1},
+            ),
+        )
     return g, reads, visa, now
 
 
@@ -30,7 +39,16 @@ def test_audit_pages_have_no_gaps_and_exclude_later_inserts(data):
 
 def test_audit_filters_are_parameterized_and_exact(data):
     g, reads, visa, _ = data
-    g.execute("a", Action("bad", visa, "purchase", "vendor:approved", {"product_id": "monitor-ultra", "quantity": 1}))
+    g.execute(
+        "a",
+        Action(
+            "bad",
+            visa,
+            "purchase",
+            "vendor:approved",
+            {"product_id": "monitor-ultra", "quantity": 1},
+        ),
+    )
     page = reads.audit(agent="a", visa=visa, decision="DENY", blocked=True)
     assert len(page["items"]) == 1
     assert page["items"][0]["event"]["action"]["request_id"] == "bad"
@@ -55,7 +73,9 @@ def test_approval_pages_and_server_clock_expiry(data):
     first = reads.approvals(limit=3)
     assert len(first["items"]) == 3 and first["has_more"]
     second = reads.approvals(limit=3, after=first["next_after"], through=first["through"])
-    assert {r["request_id"] for r in first["items"]}.isdisjoint(r["request_id"] for r in second["items"])
+    assert {r["request_id"] for r in first["items"]}.isdisjoint(
+        r["request_id"] for r in second["items"]
+    )
     now[0] += 300
     assert not reads.approvals()["items"]
     assert all(r["expired"] for r in reads.approvals(include_expired=True)["items"])
@@ -78,13 +98,25 @@ def test_visas_page_uses_stable_insert_order(data):
     for i in range(4):
         g.issue(draft("Buy a monitor under $300.", "other", now[0]))
     first = reads.visas(agent="other", limit=2)
-    second = reads.visas(agent="other", limit=2, after=first["next_after"], through=first["through"])
+    second = reads.visas(
+        agent="other", limit=2, after=first["next_after"], through=first["through"]
+    )
     assert len(first["items"]) == len(second["items"]) == 2
     assert not second["has_more"]
     assert all(v["contract"]["agent_id"] == "other" for v in first["items"])
 
 
-@pytest.mark.parametrize("kwargs", [{"limit":0}, {"limit":101}, {"after":-1}, {"after":2**63}, {"through":-1}, {"through":True}])
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"limit": 0},
+        {"limit": 101},
+        {"after": -1},
+        {"after": 2**63},
+        {"through": -1},
+        {"through": True},
+    ],
+)
 def test_invalid_bounds_fail(data, kwargs):
     _, reads, _, _ = data
     with pytest.raises(ValueError):
@@ -93,6 +125,7 @@ def test_invalid_bounds_fail(data, kwargs):
 
 def test_read_connection_forbids_writes_and_indexes_are_repeatable(data):
     import sqlite3
+
     g, _, _, _ = data
     ReadModel(g)
     with g.read_transaction() as db:

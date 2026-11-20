@@ -1,4 +1,5 @@
 """Domain dispatch preserves the gateway boundary and simulated execution."""
+
 import io
 import json
 from dataclasses import replace
@@ -24,8 +25,13 @@ def research(tmp_path):
 
 
 def summary(visa, key="summary"):
-    return Action(key, visa, "filesystem.write", "workspace:summaries/summary.txt",
-                  {"path": "summaries/summary.txt", "content": "Python can use SQLite."})
+    return Action(
+        key,
+        visa,
+        "filesystem.write",
+        "workspace:summaries/summary.txt",
+        {"path": "summaries/summary.txt", "content": "Python can use SQLite."},
+    )
 
 
 def test_research_effects_are_gateway_records_only(research, tmp_path, monkeypatch):
@@ -46,7 +52,9 @@ def test_research_effects_are_gateway_records_only(research, tmp_path, monkeypat
     assert gateway.verify_audit()
 
 
-@pytest.mark.parametrize("purpose", ["shell", "os", "nodi.domains.research", "procurement", "research"])
+@pytest.mark.parametrize(
+    "purpose", ["shell", "os", "nodi.domains.research", "procurement", "research"]
+)
 def test_only_canonical_registered_purposes_in_contracts(purpose):
     with pytest.raises(ValueError):
         Contract("a", "Any mission", purpose=purpose)
@@ -61,20 +69,37 @@ def test_no_cross_domain_tools_or_authority(research):
     assert gateway.delegate("research", visa, procurement)["decision"] == "DENY"
     with pytest.raises(ValueError, match="identity or mission"):
         gateway.modify(visa, replace(procurement, agent_id="research"))
-    response = gateway.execute("research", Action("purchase", visa, "purchase", "vendor:approved",
-                               {"product_id": "monitor-basic", "quantity": 1}))
+    response = gateway.execute(
+        "research",
+        Action(
+            "purchase",
+            visa,
+            "purchase",
+            "vendor:approved",
+            {"product_id": "monitor-basic", "quantity": 1},
+        ),
+    )
     assert response["decision"] == "DENY"
     assert not gateway.snapshot()["effects"]
 
 
-@pytest.mark.parametrize("changes", [
-    {"resource": "workspace:notes/source.txt"},
-    {"arguments": {"path": "../summary.txt", "content": "hello"}},
-    {"arguments": {"path": "/tmp/summary.txt", "content": "hello"}},
-    {"arguments": {"path": "summaries/summary.txt", "content": "hello", "domain": "procurement"}},
-    {"arguments": {"path": "summaries/summary.txt", "content": "x" * 4001}},
-    {"arguments": {"path": "summaries/summary.txt", "content": []}},
-])
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"resource": "workspace:notes/source.txt"},
+        {"arguments": {"path": "../summary.txt", "content": "hello"}},
+        {"arguments": {"path": "/tmp/summary.txt", "content": "hello"}},
+        {
+            "arguments": {
+                "path": "summaries/summary.txt",
+                "content": "hello",
+                "domain": "procurement",
+            }
+        },
+        {"arguments": {"path": "summaries/summary.txt", "content": "x" * 4001}},
+        {"arguments": {"path": "summaries/summary.txt", "content": []}},
+    ],
+)
 def test_research_invalid_destinations_and_arguments_deny(research, changes):
     gateway, _, visa = research
     assert gateway.execute("research", replace(summary(visa), **changes))["decision"] == "DENY"
@@ -83,7 +108,9 @@ def test_research_invalid_destinations_and_arguments_deny(research, changes):
 
 def test_research_approval_does_not_bypass_ancestor_edit(research):
     gateway, contract, visa = research
-    child = gateway.delegate("research", visa, replace(contract, agent_id="child", delegation_depth=0))["visa_id"]
+    child = gateway.delegate(
+        "research", visa, replace(contract, agent_id="child", delegation_depth=0)
+    )["visa_id"]
     request = summary(child)
     assert gateway.execute("child", request)["decision"] == "ASK_HUMAN"
     gateway.approve("child", request.request_id, True)
@@ -96,9 +123,11 @@ def test_research_approval_does_not_bypass_ancestor_edit(research):
 def test_remote_allow_cannot_relax_research_baseline(research):
     gateway, _, visa = research
     reviewer = SemanticReviewer("https://reviewer.example/", "test-only")
+
     class Allow:
         def open(self, request, timeout):
             return io.BytesIO(json.dumps(Intent(1, 0, "allow", [], "ALLOW").dictionary()).encode())
+
     reviewer.opener = Allow()
     gateway.evaluator = reviewer
     assert gateway.execute("research", summary(visa))["decision"] == "ASK_HUMAN"
