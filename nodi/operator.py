@@ -57,10 +57,8 @@ class ControlClient:
             ) from None
         except (URLError, TimeoutError, OSError, ValueError):
             raise OperatorError(
-                (
-                    "Gateway response unavailable or invalid; outcome unknown. "
-                    "Inspect state before retrying a mutation"
-                )
+                "Gateway response unavailable or invalid; outcome unknown. "
+                "Inspect state before retrying a mutation"
             ) from None
 
 

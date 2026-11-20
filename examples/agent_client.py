@@ -104,11 +104,9 @@ class AgentClient:
             ) from None
         except (URLError, OSError, ValueError, TypeError):
             raise ClientError(
-                (
-                    "Gateway result unavailable or invalid. Outcome is uncertain; "
-                    "preserve the original request ID and exact action. No "
-                    "automatic retry was attempted."
-                )
+                "Gateway result unavailable or invalid. Outcome is uncertain; "
+                "preserve the original request ID and exact action. No "
+                "automatic retry was attempted."
             ) from None
 
 

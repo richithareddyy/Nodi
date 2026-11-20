@@ -537,10 +537,8 @@ class Gateway:
             holds = {
                 row["visa_id"]: (row["amount"], row["actions"])
                 for row in db.execute(
-                    (
-                        "SELECT visa_id,SUM(amount) AS amount,COUNT(*) AS actions FROM "
-                        "reservations GROUP BY visa_id"
-                    )
+                    "SELECT visa_id,SUM(amount) AS amount,COUNT(*) AS actions FROM "
+                    "reservations GROUP BY visa_id"
                 )
             }
             return {
