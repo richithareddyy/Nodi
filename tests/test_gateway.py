@@ -274,7 +274,7 @@ def test_shared_sibling_budget_concurrently(setup):
         results = list(
             pool.map(
                 lambda pair: Gateway(g.path, clock=g.clock).execute(pair[0], buy(pair[1])),
-                zip(("b", "c"), children),
+                zip(("b", "c"), children, strict=False),
             )
         )
     assert sorted(r["decision"] for r in results) == ["ALLOW", "DENY"]
@@ -356,23 +356,17 @@ def test_transaction_rolls_back_if_audit_write_fails(setup):
     with g.transaction() as db:
         if g.store.dialect == "postgres":
             db.execute(
-                (
-                    "CREATE FUNCTION fail_audit() RETURNS trigger LANGUAGE plpgsql "
-                    "AS $$ BEGIN RAISE EXCEPTION 'disk failure simulation'; END $$"
-                )
+                "CREATE FUNCTION fail_audit() RETURNS trigger LANGUAGE plpgsql "
+                "AS $$ BEGIN RAISE EXCEPTION 'disk failure simulation'; END $$"
             )
             db.execute(
-                (
-                    "CREATE TRIGGER audit_failure BEFORE INSERT ON audit FOR EACH "
-                    "ROW EXECUTE FUNCTION fail_audit()"
-                )
+                "CREATE TRIGGER audit_failure BEFORE INSERT ON audit FOR EACH "
+                "ROW EXECUTE FUNCTION fail_audit()"
             )
         else:
             db.execute(
-                (
-                    "CREATE TRIGGER audit_failure BEFORE INSERT ON audit BEGIN "
-                    "SELECT RAISE(ABORT, 'disk failure simulation'); END"
-                )
+                "CREATE TRIGGER audit_failure BEFORE INSERT ON audit BEGIN "
+                "SELECT RAISE(ABORT, 'disk failure simulation'); END"
             )
     with pytest.raises(sqlite3.Error):
         g.execute("a", buy(v))

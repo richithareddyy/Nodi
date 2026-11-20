@@ -28,7 +28,7 @@ def rows(cursor):
 
     def make(values):
         result = Row()
-        for name, value in zip(names, values):
+        for name, value in zip(names, values, strict=False):
             if name == "rowid":
                 continue
             if isinstance(value, Decimal):
