@@ -42,3 +42,4 @@ uvicorn==0.54.0
 psycopg==3.3.9
 psycopg-binary==3.3.9
 psycopg-pool==3.3.3
+ruff==0.17.6
