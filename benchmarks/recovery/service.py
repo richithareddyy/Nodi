@@ -1,10 +1,11 @@
 """Independent durable loopback test service. Never processes real payments."""
 import argparse
 import hmac
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+
 from nodi.mock_payments import MockPaymentProvider
 
 

@@ -1,17 +1,18 @@
 """Measure transaction acquisition delay with slow/failing in-process evaluators."""
 import argparse
-from concurrent.futures import ThreadPoolExecutor
-from contextlib import contextmanager
 import json
-from pathlib import Path
 import tempfile
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
+from pathlib import Path
+
+from benchmarks.metrics import metadata, timing
+from nodi.domains import get_domain
 from nodi.gateway import Gateway
 from nodi.intent import DomainEvaluator
-from nodi.domains import get_domain
 from nodi.models import Action
-from benchmarks.metrics import metadata, timing
 
 
 class MeasuredGateway(Gateway):

@@ -5,23 +5,24 @@ mission/setup/teardown are excluded. Reports contain no DSN or bearer credential
 """
 import argparse
 import asyncio
-from concurrent.futures import ThreadPoolExecutor
-from dataclasses import replace
 import json
 import math
 import os
-from pathlib import Path
 import platform
 import subprocess
 import tempfile
 import threading
 import time
-from urllib.parse import urlsplit,urlunsplit,parse_qsl,urlencode
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import replace
+from pathlib import Path
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from uuid import uuid4
-from nodi.gateway import Gateway
-from nodi.models import Contract,Action
-from nodi.queries import ReadModel
+
 from benchmarks.metrics import metadata
+from nodi.gateway import Gateway
+from nodi.models import Action, Contract
+from nodi.queries import ReadModel
 
 
 def distribution(values):

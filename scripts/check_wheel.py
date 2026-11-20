@@ -1,12 +1,12 @@
 """Install one wheel in a fresh environment and exercise bundled offline commands."""
 import argparse
-import json
 import hashlib
-import zipfile
-from pathlib import Path
+import json
 import subprocess
 import tempfile
 import venv
+import zipfile
+from pathlib import Path
 
 
 def main():

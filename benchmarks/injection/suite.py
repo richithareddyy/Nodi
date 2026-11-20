@@ -4,6 +4,7 @@ import base64
 import hashlib
 import json
 from pathlib import Path
+
 from nodi.json_input import validate_json
 
 ROOT = Path(__file__).parent / 'data'

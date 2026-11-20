@@ -3,12 +3,14 @@ import argparse
 import asyncio
 import json
 import os
-from pathlib import Path
 import random
 import time
+from pathlib import Path
+
 from benchmarks.metrics import metadata
-from .environment import Environment, MODES
-from .oracle import classify, PRICES
+
+from .environment import MODES, Environment
+from .oracle import PRICES, classify
 from .provider import Model, config
 from .report import summarize
 from .suite import load

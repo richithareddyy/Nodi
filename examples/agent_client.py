@@ -6,7 +6,8 @@ import re
 import sys
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
-from urllib.request import Request, ProxyHandler, HTTPRedirectHandler, build_opener
+from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
+
 from nodi.transport import gateway_origin
 
 

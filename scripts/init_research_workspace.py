@@ -1,7 +1,7 @@
 """Create a new nonsecret workspace and test database for Docker read-only tools."""
 import argparse
-from pathlib import Path
 import sqlite3
+from pathlib import Path
 
 
 def main():

@@ -1,7 +1,8 @@
 """Bounded client for the controlled loopback service, not a payment integration."""
 import json
 import re
-from urllib.request import Request, build_opener, ProxyHandler, HTTPRedirectHandler
+from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
+
 from nodi.json_input import validate_json
 
 

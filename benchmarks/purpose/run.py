@@ -2,13 +2,14 @@
 import argparse
 import hashlib
 import json
-from pathlib import Path
 import tempfile
 import time
+from pathlib import Path
+
+from benchmarks.metrics import metadata, rate, timing
 from nodi.domains import get_domain
 from nodi.gateway import Gateway
 from nodi.models import Action
-from benchmarks.metrics import metadata, rate, timing
 
 
 def run(dataset, output):

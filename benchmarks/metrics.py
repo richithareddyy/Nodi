@@ -1,10 +1,10 @@
 """Count-based intervals and descriptive timing summaries for local experiments."""
 import hashlib
-from pathlib import Path
 import math
 import platform
 import subprocess
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from pathlib import Path
 
 PROVENANCE = {'label_source': 'machine-authored, specification-derived cases',
               'independently_validated': False,
@@ -38,7 +38,7 @@ def metadata():
         revision, dirty = git('rev-parse', 'HEAD'), bool(git('status', '--porcelain'))
     except (OSError, subprocess.CalledProcessError):
         revision, dirty = None, None
-    return {'date_utc': datetime.now(timezone.utc).isoformat(), 'git_commit': revision,
+    return {'date_utc': datetime.now(UTC).isoformat(), 'git_commit': revision,
             'git_dirty': dirty, 'python': platform.python_version(), 'platform': platform.platform(),
             'label_provenance': PROVENANCE,
             'source_sha256': {str(p.relative_to(Path(__file__).resolve().parents[1])): hashlib.sha256(p.read_bytes()).hexdigest()

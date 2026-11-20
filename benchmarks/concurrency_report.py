@@ -1,8 +1,9 @@
 """Render measured load results with counts and descriptive trial-bootstrap intervals."""
 import argparse
 import json
-from pathlib import Path
 import random
+from pathlib import Path
+
 from .concurrency import distribution
 
 
