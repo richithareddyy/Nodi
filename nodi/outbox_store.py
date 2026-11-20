@@ -24,7 +24,10 @@ CREATE INDEX IF NOT EXISTS outbox_work ON outbox(state,lease_until,updated_at);
 
 def reserved(db, visa_id, excluding=None):
     row = db.execute(
-        "SELECT COALESCE(SUM(amount),0),COUNT(*) FROM reservations WHERE visa_id=? AND outbox_id != ?",
+        (
+            "SELECT COALESCE(SUM(amount),0),COUNT(*) FROM reservations "
+            "WHERE visa_id=? AND outbox_id != ?"
+        ),
         (visa_id, excluding or ""),
     ).fetchone()
     return row[0], row[1]

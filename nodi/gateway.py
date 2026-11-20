@@ -73,7 +73,10 @@ class Gateway:
             if (
                 payment_provider is not None
                 and db.execute(
-                    "SELECT 1 FROM outbox WHERE state IN ('PENDING','UNKNOWN') AND provider_id != ? LIMIT 1",
+                    (
+                        "SELECT 1 FROM outbox WHERE state IN ('PENDING','UNKNOWN') AND "
+                        "provider_id != ? LIMIT 1"
+                    ),
                     (payment_provider.identity,),
                 ).fetchone()
             ):
@@ -490,7 +493,12 @@ class Gateway:
                 response["approval_deadline"] = deadline
             response["evaluation_ms"] = round((time.perf_counter() - start) * 1000, 3)
             db.execute(
-                "INSERT INTO requests(principal,id,fingerprint,action,response,approval,deadline) VALUES(?,?,?,?,?,?,?) ON CONFLICT(principal,id) DO UPDATE SET response=excluded.response, approval=excluded.approval",
+                (
+                    "INSERT INTO "
+                    "requests(principal,id,fingerprint,action,response,approval,deadline) "
+                    "VALUES(?,?,?,?,?,?,?) ON CONFLICT(principal,id) DO UPDATE SET "
+                    "response=excluded.response, approval=excluded.approval"
+                ),
                 (
                     principal,
                     action.request_id,
@@ -529,7 +537,10 @@ class Gateway:
             holds = {
                 row["visa_id"]: (row["amount"], row["actions"])
                 for row in db.execute(
-                    "SELECT visa_id,SUM(amount) AS amount,COUNT(*) AS actions FROM reservations GROUP BY visa_id"
+                    (
+                        "SELECT visa_id,SUM(amount) AS amount,COUNT(*) AS actions FROM "
+                        "reservations GROUP BY visa_id"
+                    )
                 )
             }
             return {

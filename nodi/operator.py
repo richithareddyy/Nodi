@@ -52,11 +52,15 @@ class ControlClient:
             return result
         except HTTPError as exc:
             raise OperatorError(
-                f"Gateway returned HTTP {exc.code}; inspect current state before retrying a mutation"
+                f"Gateway returned HTTP {exc.code}; inspect current state before retrying a "
+                f"mutation"
             ) from None
         except (URLError, TimeoutError, OSError, ValueError):
             raise OperatorError(
-                "Gateway response unavailable or invalid; outcome unknown. Inspect state before retrying a mutation"
+                (
+                    "Gateway response unavailable or invalid; outcome unknown. "
+                    "Inspect state before retrying a mutation"
+                )
             ) from None
 
 
@@ -242,7 +246,11 @@ def main(argv=None):
         raise SystemExit(1) from None
     except (ValueError, TypeError, KeyError, OSError):
         print(
-            "Operator command failed. Check credentials, gateway state, file paths and review fingerprint; no automatic retry was attempted.",
+            (
+                "Operator command failed. Check credentials, gateway state, "
+                "file paths and review fingerprint; no automatic retry was "
+                "attempted."
+            ),
             file=sys.stderr,
         )
         raise SystemExit(1) from None

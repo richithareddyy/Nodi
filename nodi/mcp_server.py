@@ -80,18 +80,21 @@ class GatewayClient:
                     ) as response:
                         if response.status_code in (401, 403, 413, 422):
                             raise GatewayCallError(
-                                f"Gateway rejected request (HTTP {response.status_code}); no execution"
+                                f"Gateway rejected request (HTTP {response.status_code}); "
+                                f"no execution"
                             )
                         if response.status_code != 200:
                             raise GatewayCallError(
-                                "Gateway result unavailable; execution outcome is unknown. Retry the same request_id"
+                                "Gateway result unavailable; execution outcome is unknown. "
+                                "Retry the same request_id"
                             )
                         data = bytearray()
                         async for chunk in response.aiter_bytes(chunk_size=16384):
                             data.extend(chunk)
                             if len(data) > 262144:
                                 raise GatewayCallError(
-                                    "Gateway response too large; outcome unknown. Retry the same request_id"
+                                    "Gateway response too large; outcome unknown. Retry "
+                                    "the same request_id"
                                 )
             result = json.loads(data)
             if (
@@ -123,11 +126,13 @@ class GatewayClient:
                             return {
                                 "request_id": request.request_id,
                                 "found": False,
-                                "scope": "absent from this snapshot; an in-flight call may still commit",
+                                "scope": "absent from this snapshot; an in-flight call may "
+                                "still commit",
                             }
                         if response.status_code != 200:
                             raise GatewayCallError(
-                                "Request status unavailable; do not infer whether execution occurred"
+                                "Request status unavailable; do not infer whether "
+                                "execution occurred"
                             )
                         data = bytearray()
                         async for chunk in response.aiter_bytes(chunk_size=16384):
@@ -180,9 +185,11 @@ def create_mcp(client: GatewayClient) -> MCPServer:
         "Nodi",
         instructions=(
             "Submit protected actions through execute_action. DENY and ASK_HUMAN do not execute. "
-            "For outbox payments, ALLOW is authorization only; inspect execution_state and executed for confirmation. "
+            "For outbox payments, ALLOW is authorization only; inspect execution_state and "
+            "executed for confirmation. "
             "Only a human administrator can approve via the separate HTTP control API. "
-            "On transport failure, outcome is unknown; inspect with get_request_status or retry the identical request_id and action. "
+            "On transport failure, outcome is unknown; inspect with get_request_status or "
+            "retry the identical request_id and action. "
             "Never assume a failed response means the effect did not occur."
         ),
     )

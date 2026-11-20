@@ -142,7 +142,10 @@ def create_app(gateway: Gateway, admin_token: str, agent_tokens: dict[str, str])
     app = FastAPI(
         title="Nodi",
         version="0.1.0",
-        description="Mission-scoped authorization. Simulation by default, with optional Docker read-only execution.",
+        description=(
+            "Mission-scoped authorization. Simulation by default, with "
+            "optional Docker read-only execution."
+        ),
     )
     from .dashboard import install_dashboard
 

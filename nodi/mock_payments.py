@@ -44,10 +44,14 @@ class MockPaymentProvider:
                 CREATE TABLE IF NOT EXISTS payments (
                     key TEXT PRIMARY KEY, payload_hash TEXT NOT NULL, result TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS modes (key TEXT PRIMARY KEY, mode TEXT NOT NULL);
-                CREATE TABLE IF NOT EXISTS calls (sequence INTEGER PRIMARY KEY, key TEXT, method TEXT);
+                CREATE TABLE IF NOT EXISTS calls (
+                    sequence INTEGER PRIMARY KEY, key TEXT, method TEXT);
             """)
             db.execute(
-                "INSERT INTO provider_identity SELECT ? WHERE NOT EXISTS (SELECT 1 FROM provider_identity)",
+                (
+                    "INSERT INTO provider_identity SELECT ? WHERE NOT EXISTS "
+                    "(SELECT 1 FROM provider_identity)"
+                ),
                 (uuid4().hex,),
             )
             self.identity = db.execute("SELECT id FROM provider_identity").fetchone()[0]

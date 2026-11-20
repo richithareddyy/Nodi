@@ -5,9 +5,11 @@ import json
 from .capabilities import CapabilityError, contract, encoded, node_ids
 
 SCHEMA = """
-CREATE TABLE IF NOT EXISTS capability_epochs (visa_id TEXT PRIMARY KEY REFERENCES visas(id), epoch INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS capability_epochs (visa_id TEXT PRIMARY KEY REFERENCES visas(id),
+    epoch INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS capability_roots (id TEXT PRIMARY KEY, root TEXT NOT NULL);
-CREATE TABLE IF NOT EXISTS capability_nodes (visa_id TEXT PRIMARY KEY REFERENCES visas(id), root_id TEXT NOT NULL REFERENCES capability_roots(id));
+CREATE TABLE IF NOT EXISTS capability_nodes (visa_id TEXT PRIMARY KEY REFERENCES visas(id),
+    root_id TEXT NOT NULL REFERENCES capability_roots(id));
 CREATE TABLE IF NOT EXISTS capability_requests (principal TEXT NOT NULL, request_id TEXT NOT NULL,
     root_id TEXT NOT NULL REFERENCES capability_roots(id), PRIMARY KEY(principal,request_id));
 """

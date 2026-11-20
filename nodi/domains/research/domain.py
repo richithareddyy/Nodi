@@ -4,8 +4,12 @@ from ...domain_types import Intent, Prepared
 from ...models import Action, Contract, text
 
 PAGES = {
-    "https://docs.python.org/3/tutorial/": "Python supports modules, functions and structured data.",
-    "https://docs.python.org/3/library/sqlite3.html": "SQLite is an embedded transactional database.",
+    "https://docs.python.org/3/tutorial/": (
+        "Python supports modules, functions and structured data."
+    ),
+    ("https://docs.python.org/3/library/sqlite3.html"): (
+        "SQLite is an embedded transactional database."
+    ),
 }
 FILES = {"notes/source.txt": "Research topic: Python and SQLite for small local applications."}
 SUMMARY = "summaries/summary.txt"

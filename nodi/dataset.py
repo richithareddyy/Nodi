@@ -97,6 +97,7 @@ def load_dataset(source, domain="procurement"):
                 raise ValueError
         except (ValueError, TypeError, KeyError):
             raise ValueError(
-                f"invalid dataset case at position {position}; check fields, labels, ID and precondition"
+                f"invalid dataset case at position {position}; check fields, labels, ID and "
+                f"precondition"
             ) from None
     return Dataset(cases, hashlib.sha256(raw).hexdigest())

@@ -15,13 +15,22 @@ class ReadModel:
         with gateway.transaction() as db:
             db.execute("CREATE INDEX IF NOT EXISTS requests_approval ON requests(approval)")
             db.execute(
-                "CREATE INDEX IF NOT EXISTS visas_agent ON visas(json_extract(contract, '$.agent_id'))"
+                (
+                    "CREATE INDEX IF NOT EXISTS visas_agent ON "
+                    "visas(json_extract(contract, '$.agent_id'))"
+                )
             )
             db.execute(
-                "CREATE INDEX IF NOT EXISTS audit_agent ON audit(json_extract(event, '$.agent'), sequence)"
+                (
+                    "CREATE INDEX IF NOT EXISTS audit_agent ON "
+                    "audit(json_extract(event, '$.agent'), sequence)"
+                )
             )
             db.execute(
-                "CREATE INDEX IF NOT EXISTS audit_decision ON audit(json_extract(event, '$.decision'), sequence)"
+                (
+                    "CREATE INDEX IF NOT EXISTS audit_decision ON "
+                    "audit(json_extract(event, '$.decision'), sequence)"
+                )
             )
 
     @staticmethod
@@ -64,7 +73,10 @@ class ReadModel:
                 values.append(value)
         if blocked:
             where.append(
-                "(json_extract(event, '$.decision') = 'DENY' OR json_extract(event, '$.event') = 'delegation_denied')"
+                (
+                    "(json_extract(event, '$.decision') = 'DENY' OR "
+                    "json_extract(event, '$.event') = 'delegation_denied')"
+                )
             )
         with self.gateway.read_transaction() as db:
             high = (
@@ -137,7 +149,10 @@ class ReadModel:
                     ):
                         raise CapabilityError("capability inactive")
             row = db.execute(
-                "SELECT fingerprint,response,approval,deadline FROM requests WHERE principal=? AND id=?",
+                (
+                    "SELECT fingerprint,response,approval,deadline FROM requests "
+                    "WHERE principal=? AND id=?"
+                ),
                 (principal, request_id),
             ).fetchone()
             if row is None or (
@@ -212,7 +227,10 @@ class ReadModel:
                     "allowed_tools": permitted("allowed_tools", "forbidden_operations"),
                     "allowed_resources": permitted("allowed_resources", "forbidden_resources"),
                 },
-                "scope": "read-only snapshot, not authorization; shared usage can change and pending reviews reserve no budget",
+                "scope": (
+                    "read-only snapshot, not authorization; shared usage can "
+                    "change and pending reviews reserve no budget"
+                ),
             }
 
     @staticmethod

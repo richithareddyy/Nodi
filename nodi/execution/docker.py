@@ -92,7 +92,10 @@ class DockerBackend:
             return {"simulation": False, "backend": "docker-readonly", **response["result"]}
         except (OSError, ValueError, TypeError, subprocess.SubprocessError, RecursionError):
             raise ExecutionError(
-                "Sandbox read failed; no successful result committed. A read may have occurred; retry the same request ID."
+                (
+                    "Sandbox read failed; no successful result committed. A read "
+                    "may have occurred; retry the same request ID."
+                )
             ) from None
         finally:
             # Killing only the CLI does not reliably terminate its container.

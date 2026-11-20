@@ -122,7 +122,11 @@ class Outbox:
                     return {"id": row["id"], "terminal": True}
             token = uuid4().hex
             db.execute(
-                "UPDATE outbox SET state='UNKNOWN',lease=?,lease_until=?,attempts=attempts+1,updated_at=? WHERE id=?",
+                (
+                    "UPDATE outbox SET "
+                    "state='UNKNOWN',lease=?,lease_until=?,attempts=attempts+1,"
+                    "updated_at=? WHERE id=?"
+                ),
                 (
                     token,
                     int(self.gateway.clock()) + self.lease_seconds,

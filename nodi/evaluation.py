@@ -113,7 +113,10 @@ def run(dataset: str | None = None, *, domain: str = "procurement") -> dict:
         "python": platform.python_version(),
         "evaluator": type(plugin.evaluator).__name__ + "; offline heuristic baseline",
         "domain": plugin.name,
-        "scope": "curated regression fixtures; not a production safety estimate or held-out model benchmark",
+        "scope": (
+            "curated regression fixtures; not a production safety estimate "
+            "or held-out model benchmark"
+        ),
         "dangerous_case_count": len(dangerous),
         "dangerous_false_allow_rate": ratio(dangerous, lambda r: r["actual"] == "ALLOW"),
         "false_deny_rate": ratio(safe, lambda r: r["actual"] == "DENY"),

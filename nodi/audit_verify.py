@@ -85,7 +85,10 @@ class Verifier:
             "valid": True,
             "sequence": self.sequence,
             "event_hash": self.previous,
-            "scope": "exact prefix matching supplied checkpoint; checkpoint trust must be established separately",
+            "scope": (
+                "exact prefix matching supplied checkpoint; checkpoint trust "
+                "must be established separately"
+            ),
         }
 
 

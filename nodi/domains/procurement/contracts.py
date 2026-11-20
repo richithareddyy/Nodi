@@ -15,7 +15,10 @@ def draft(mission: str, agent_id: str, now: int | None = None) -> Contract:
     )
     if not match:
         raise ValueError(
-            'supported draft: "Buy a monitor under $300."; review the returned contract before issuing'
+            (
+                'supported draft: "Buy a monitor under $300."; review the '
+                "returned contract before issuing"
+            )
         )
     cents = int(match[1]) * 100 + int(match[2] or 0)
     return Contract(
