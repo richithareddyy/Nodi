@@ -1,4 +1,5 @@
 """Trusted plugins declare closed schemas, metadata and an intent baseline."""
+
 from typing import Protocol
 
 from ..domain_types import Evaluator, Prepared

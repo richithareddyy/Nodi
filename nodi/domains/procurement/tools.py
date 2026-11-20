@@ -1,4 +1,5 @@
 """Procurement preparation; effects remain SQLite records in the gateway."""
+
 from ...domain_types import Prepared
 from ...models import Action, integer, text
 from .metadata import CATALOG, SCHEMAS
@@ -18,10 +19,18 @@ def prepare(action: Action) -> Prepared:
     result: dict = {}
     if action.tool == "search_products":
         text(args["query"], "query", 300)
-        result = {"products": {key: item for key, item in CATALOG.items() if item["category"] == "monitor"}}
+        result = {
+            "products": {
+                key: item for key, item in CATALOG.items() if item["category"] == "monitor"
+            }
+        }
     elif action.tool == "compare_products":
         ids = args["product_ids"]
-        if type(ids) is not list or not 1 <= len(ids) <= 5 or any(type(i) is not str or i not in CATALOG for i in ids):
+        if (
+            type(ids) is not list
+            or not 1 <= len(ids) <= 5
+            or any(type(i) is not str or i not in CATALOG for i in ids)
+        ):
             raise ValueError("invalid product_ids")
         category = "monitor" if all(CATALOG[i]["category"] == "monitor" for i in ids) else "other"
         result = {"products": {i: CATALOG[i] for i in ids}}
@@ -49,11 +58,18 @@ def prepare(action: Action) -> Prepared:
         impact = "external_write"
         result = {"recipient": args["recipient"], "sent": True}
     else:
-        if args["file"] not in ("file:employees.csv", "file:quote.pdf") or args["destination"] != "storage:external":
+        if (
+            args["file"] not in ("file:employees.csv", "file:quote.pdf")
+            or args["destination"] != "storage:external"
+        ):
             raise ValueError("unknown upload resource")
         resources = {args["file"], args["destination"]}
         impact = "external_write"
-    primary = "catalog:monitors" if action.tool in ("search_products", "compare_products") else ("storage:external" if action.tool == "upload_file" else "vendor:approved")
+    primary = (
+        "catalog:monitors"
+        if action.tool in ("search_products", "compare_products")
+        else ("storage:external" if action.tool == "upload_file" else "vendor:approved")
+    )
     if action.resource != primary:
         raise ValueError("claimed resource does not match tool destination")
     return Prepared(frozenset(resources), cost, category, impact, result)
