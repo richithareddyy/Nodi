@@ -1,4 +1,5 @@
 """Authenticated HTTP boundary. Protected adapters are never exposed as routes."""
+
 import asyncio
 import hmac
 import json
@@ -52,8 +53,13 @@ class ActionBody(StrictModel):
 
 class BodyLimit:
     """Buffer a bounded body before parsing; also covers chunked requests."""
+
     def __init__(self, app, limit=65536, read_timeout=5.0):
-        if type(read_timeout) not in (int, float) or not math.isfinite(read_timeout) or read_timeout <= 0:
+        if (
+            type(read_timeout) not in (int, float)
+            or not math.isfinite(read_timeout)
+            or read_timeout <= 0
+        ):
             raise ValueError("body read timeout must be positive and finite")
         self.app, self.limit, self.read_timeout = app, limit, read_timeout
 
@@ -80,37 +86,66 @@ class BodyLimit:
                 if not message.get("more_body", False):
                     break
         except TimeoutError:
-            response = JSONResponse({"detail": "request body read deadline exceeded"}, status_code=408)
+            response = JSONResponse(
+                {"detail": "request body read deadline exceeded"}, status_code=408
+            )
             return await response(scope, receive, send)
         body = bytes(body)
         if body:
-            content_types = [value.decode("latin-1").split(";", 1)[0].strip().lower()
-                             for key, value in scope.get("headers", []) if key.lower() == b"content-type"]
-            if len(content_types) != 1 or not (content_types[0] == "application/json" or
-                    (content_types[0].startswith("application/") and content_types[0].endswith("+json"))):
-                response = JSONResponse({"detail": "a single JSON Content-Type is required"}, status_code=415)
+            content_types = [
+                value.decode("latin-1").split(";", 1)[0].strip().lower()
+                for key, value in scope.get("headers", [])
+                if key.lower() == b"content-type"
+            ]
+            if len(content_types) != 1 or not (
+                content_types[0] == "application/json"
+                or (
+                    content_types[0].startswith("application/")
+                    and content_types[0].endswith("+json")
+                )
+            ):
+                response = JSONResponse(
+                    {"detail": "a single JSON Content-Type is required"}, status_code=415
+                )
                 return await response(scope, receive, send)
             try:
                 validate_json(body)
             except (ValueError, RecursionError):
-                response = JSONResponse({"detail": "invalid or ambiguous JSON request"}, status_code=400)
+                response = JSONResponse(
+                    {"detail": "invalid or ambiguous JSON request"}, status_code=400
+                )
                 return await response(scope, receive, send)
         sent = False
+
         async def bounded_receive():
             nonlocal sent
             if not sent:
                 sent = True
                 return {"type": "http.request", "body": body, "more_body": False}
             return await receive()
+
         await self.app(scope, bounded_receive, send)
 
 
 def create_app(gateway: Gateway, admin_token: str, agent_tokens: dict[str, str]) -> FastAPI:
     """Tokens map to identities on the server, never from request agent_id fields."""
-    if len(admin_token) < 32 or not agent_tokens or any(type(k) is not str or len(k) < 32 or type(v) is not str or not v for k, v in agent_tokens.items()) or admin_token in agent_tokens:
+    if (
+        len(admin_token) < 32
+        or not agent_tokens
+        or any(
+            type(k) is not str or len(k) < 32 or type(v) is not str or not v
+            for k, v in agent_tokens.items()
+        )
+        or admin_token in agent_tokens
+    ):
         raise ValueError("distinct admin/agent credentials of at least 32 characters required")
-    app = FastAPI(title="Nodi", version="0.1.0", description="Mission-scoped authorization. Simulation by default, with optional Docker read-only execution.")
+    app = FastAPI(
+        title="Nodi",
+        version="0.1.0",
+        description="Mission-scoped authorization. Simulation by default, with optional Docker read-only execution.",
+    )
     from .dashboard import install_dashboard
+
     install_dashboard(app)
     app.add_middleware(BodyLimit)
     reads = ReadModel(gateway)
@@ -142,12 +177,17 @@ def create_app(gateway: Gateway, admin_token: str, agent_tokens: dict[str, str])
 
     @app.exception_handler(CapabilityError)
     async def invalid_capability(_request: Request, _exc: Exception):
-        return JSONResponse({"detail":"invalid, inactive or out-of-scope capability"}, status_code=401,
-                            headers={"Cache-Control":"no-store"})
+        return JSONResponse(
+            {"detail": "invalid, inactive or out-of-scope capability"},
+            status_code=401,
+            headers={"Cache-Control": "no-store"},
+        )
 
     @app.exception_handler(sqlite3.Error)
     async def unavailable(_request: Request, _exc: Exception):
-        return JSONResponse({"detail": "authorization store unavailable; execution not confirmed"}, status_code=503)
+        return JSONResponse(
+            {"detail": "authorization store unavailable; execution not confirmed"}, status_code=503
+        )
 
     @app.exception_handler(ExecutionError)
     async def read_failed(_request: Request, exc: Exception):
@@ -155,11 +195,19 @@ def create_app(gateway: Gateway, admin_token: str, agent_tokens: dict[str, str])
 
     @app.get("/health")
     def health():
-        return {"status": "ok", "mode": "simulation" + ("+sandbox-readonly" if gateway.backend else "") + ("+mock-payments" if gateway.payment_provider else "")}
+        return {
+            "status": "ok",
+            "mode": "simulation"
+            + ("+sandbox-readonly" if gateway.backend else "")
+            + ("+mock-payments" if gateway.payment_provider else ""),
+        }
 
     @app.post("/drafts", dependencies=[Depends(admin)])
     def draft_contract(body: MissionDraft):
-        return {"requires_human_review": True, "contract": draft(body.mission, body.agent_id).dictionary()}
+        return {
+            "requires_human_review": True,
+            "contract": draft(body.mission, body.agent_id).dictionary(),
+        }
 
     @app.post("/visas", dependencies=[Depends(admin)])
     def issue(body: dict = Body(...)):
@@ -181,7 +229,9 @@ def create_app(gateway: Gateway, admin_token: str, agent_tokens: dict[str, str])
 
     @app.post("/visas/{visa_id}/capability", dependencies=[Depends(admin)])
     def mint_capability(visa_id: str, body: CapabilityMint):
-        return JSONResponse(gateway.issue_capability(visa_id, body.key_id), headers={"Cache-Control":"no-store"})
+        return JSONResponse(
+            gateway.issue_capability(visa_id, body.key_id), headers={"Cache-Control": "no-store"}
+        )
 
     @app.post("/execute")
     def execute(body: ActionBody, credential: str = Depends(token)):
@@ -191,32 +241,46 @@ def create_app(gateway: Gateway, admin_token: str, agent_tokens: dict[str, str])
         return gateway.execute(agent(credential), action)
 
     @app.get("/requests/status")
-    def request_status(request_id: str = Query(..., pattern=r"^[A-Za-z0-9_-]{1,100}$"),
-                       credential: str = Depends(token)):
+    def request_status(
+        request_id: str = Query(..., pattern=r"^[A-Za-z0-9_-]{1,100}$"),
+        credential: str = Depends(token),
+    ):
         try:
             if credential.startswith(PREFIX):
-                if gateway.capabilities is None: raise CapabilityError("capabilities disabled")
+                if gateway.capabilities is None:
+                    raise CapabilityError("capabilities disabled")
                 verified = gateway.capabilities.verify(credential)
                 result = reads.request_status(verified.principal, request_id, capability=verified)
             else:
                 result = reads.request_status(agent(credential), request_id)
         except LookupError:
-            return JSONResponse({"detail": "request not found"}, status_code=404, headers={"Cache-Control": "no-store"})
+            return JSONResponse(
+                {"detail": "request not found"},
+                status_code=404,
+                headers={"Cache-Control": "no-store"},
+            )
         return JSONResponse(result, headers={"Cache-Control": "no-store"})
 
     @app.post("/approvals", dependencies=[Depends(admin)])
     def approval(body: Review):
-        return gateway.approve(body.agent_id, body.request_id, body.approve, body.expected_fingerprint)
+        return gateway.approve(
+            body.agent_id, body.request_id, body.approve, body.expected_fingerprint
+        )
 
     @app.get("/audit/checkpoint", dependencies=[Depends(admin)])
     def audit_checkpoint():
         return reads.checkpoint()
 
     @app.get("/audit/events", dependencies=[Depends(admin)])
-    def audit_events(after: int = Query(0, ge=0, le=MAX_CURSOR), limit: int = Query(25, ge=1, le=100),
-                     through: int | None = Query(None, ge=0, le=MAX_CURSOR),
-                     agent: str | None = Query(None, max_length=100), visa: str | None = Query(None, max_length=150),
-                     decision: Literal["ALLOW", "DENY", "ASK_HUMAN"] | None = None, blocked: bool = False):
+    def audit_events(
+        after: int = Query(0, ge=0, le=MAX_CURSOR),
+        limit: int = Query(25, ge=1, le=100),
+        through: int | None = Query(None, ge=0, le=MAX_CURSOR),
+        agent: str | None = Query(None, max_length=100),
+        visa: str | None = Query(None, max_length=150),
+        decision: Literal["ALLOW", "DENY", "ASK_HUMAN"] | None = None,
+        blocked: bool = False,
+    ):
         return reads.audit(after, limit, through, agent, visa, decision, blocked)
 
     @app.get("/visas/inspect", dependencies=[Depends(admin)])
@@ -227,18 +291,29 @@ def create_app(gateway: Gateway, admin_token: str, agent_tokens: dict[str, str])
             raise HTTPException(404, "visa not found") from None
 
     @app.get("/visas", dependencies=[Depends(admin)])
-    def list_visas(after: int = Query(0, ge=0, le=MAX_CURSOR), limit: int = Query(25, ge=1, le=100),
-                   through: int | None = Query(None, ge=0, le=MAX_CURSOR), agent: str | None = Query(None, max_length=100)):
+    def list_visas(
+        after: int = Query(0, ge=0, le=MAX_CURSOR),
+        limit: int = Query(25, ge=1, le=100),
+        through: int | None = Query(None, ge=0, le=MAX_CURSOR),
+        agent: str | None = Query(None, max_length=100),
+    ):
         return reads.visas(after, limit, through, agent)
 
     @app.get("/approvals", dependencies=[Depends(admin)])
-    def list_approvals(after: int = Query(0, ge=0, le=MAX_CURSOR), limit: int = Query(25, ge=1, le=100),
-                       through: int | None = Query(None, ge=0, le=MAX_CURSOR), agent: str | None = Query(None, max_length=100),
-                       include_expired: bool = False):
+    def list_approvals(
+        after: int = Query(0, ge=0, le=MAX_CURSOR),
+        limit: int = Query(25, ge=1, le=100),
+        through: int | None = Query(None, ge=0, le=MAX_CURSOR),
+        agent: str | None = Query(None, max_length=100),
+        include_expired: bool = False,
+    ):
         return reads.approvals(after, limit, through, agent, include_expired)
 
     @app.get("/approvals/inspect", dependencies=[Depends(admin)])
-    def inspect_approval(agent: str = Query(..., min_length=1, max_length=100), request_id: str = Query(..., min_length=1, max_length=100)):
+    def inspect_approval(
+        agent: str = Query(..., min_length=1, max_length=100),
+        request_id: str = Query(..., min_length=1, max_length=100),
+    ):
         try:
             return reads.inspect(agent, request_id)
         except LookupError:
@@ -250,7 +325,10 @@ def create_app(gateway: Gateway, admin_token: str, agent_tokens: dict[str, str])
 
     @app.get("/audit/integrity", dependencies=[Depends(admin)])
     def integrity():
-        return {"valid": gateway.verify_audit(), "scope": "local hash chain; not an external tamper-proof log"}
+        return {
+            "valid": gateway.verify_audit(),
+            "scope": "local hash chain; not an external tamper-proof log",
+        }
 
     return app
 
@@ -264,9 +342,29 @@ def from_environment() -> FastAPI:
     except (KeyError, ValueError) as exc:
         raise RuntimeError("Set NODI_ADMIN_TOKEN and NODI_AGENT_TOKENS before startup") from exc
     from .execution.docker import from_config
-    backend = from_config(json.loads(os.environ["NODI_SANDBOX"]) if "NODI_SANDBOX" in os.environ else None)
+
+    backend = from_config(
+        json.loads(os.environ["NODI_SANDBOX"]) if "NODI_SANDBOX" in os.environ else None
+    )
     from .mock_payments import from_config as payment_config
-    provider = payment_config(json.loads(os.environ["NODI_MOCK_PAYMENTS"]) if "NODI_MOCK_PAYMENTS" in os.environ else None)
+
+    provider = payment_config(
+        json.loads(os.environ["NODI_MOCK_PAYMENTS"]) if "NODI_MOCK_PAYMENTS" in os.environ else None
+    )
     from .capabilities import from_config as capability_config
-    keys = capability_config(json.loads(os.environ["NODI_CAPABILITY_KEYS"]) if "NODI_CAPABILITY_KEYS" in os.environ else None)
-    return create_app(Gateway(os.environ.get("NODI_DB", "nodi.db"), backend=backend, payment_provider=provider, capability_keys=keys), admin_token, agents)
+
+    keys = capability_config(
+        json.loads(os.environ["NODI_CAPABILITY_KEYS"])
+        if "NODI_CAPABILITY_KEYS" in os.environ
+        else None
+    )
+    return create_app(
+        Gateway(
+            os.environ.get("NODI_DB", "nodi.db"),
+            backend=backend,
+            payment_provider=provider,
+            capability_keys=keys,
+        ),
+        admin_token,
+        agents,
+    )

@@ -1,17 +1,27 @@
 """Pure deterministic checks, evaluated for the entire delegation chain."""
+
 from .domain_types import Prepared
 from .models import Action, Contract
 
 
-def checks(contract: Contract, status: str, spent: int, actions: int,
-           action: Action, prepared: Prepared, now: int) -> list[dict]:
+def checks(
+    contract: Contract,
+    status: str,
+    spent: int,
+    actions: int,
+    action: Action,
+    prepared: Prepared,
+    now: int,
+) -> list[dict]:
     conditions = {
         "active": status == "active",
         "unexpired": now < contract.expires_at,
         "tool_allowed": action.tool in contract.allowed_tools,
         "operation_allowed": action.tool not in contract.forbidden_operations,
         "resources_allowed": prepared.resources <= set(contract.allowed_resources),
-        "resources_not_forbidden": not prepared.resources.intersection(contract.forbidden_resources),
+        "resources_not_forbidden": not prepared.resources.intersection(
+            contract.forbidden_resources
+        ),
         "transaction_limit": prepared.cost <= contract.maximum_transaction,
         "cumulative_budget": spent + prepared.cost <= contract.spending_limit,
         "action_limit": actions < contract.max_actions,
@@ -30,6 +40,12 @@ def attenuation(parent: Contract, child: Contract) -> None:
     for name in ("forbidden_resources", "forbidden_operations"):
         if not set(getattr(parent, name)) <= set(getattr(child, name)):
             raise ValueError(f"delegation weakens {name}")
-    for name in ("spending_limit", "maximum_transaction", "approval_threshold", "expires_at", "max_actions"):
+    for name in (
+        "spending_limit",
+        "maximum_transaction",
+        "approval_threshold",
+        "expires_at",
+        "max_actions",
+    ):
         if getattr(child, name) > getattr(parent, name):
             raise ValueError(f"delegation widens {name}")

@@ -1,4 +1,5 @@
 """Private POSIX SQLite files in an operator-controlled directory."""
+
 import os
 import sqlite3
 import stat
@@ -25,9 +26,13 @@ def _check(path, *, optional=False):
             if optional and info.st_nlink == 0:
                 continue
             if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
-                raise UnsafeStoreError("database files must be regular files without additional hard links")
+                raise UnsafeStoreError(
+                    "database files must be regular files without additional hard links"
+                )
             if info.st_uid != os.getuid() or info.st_mode & 0o077:
-                raise UnsafeStoreError("database files must belong to the current user with owner-only permissions")
+                raise UnsafeStoreError(
+                    "database files must belong to the current user with owner-only permissions"
+                )
             return
         finally:
             os.close(fd)

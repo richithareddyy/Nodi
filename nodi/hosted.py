@@ -1,4 +1,5 @@
 """Environment-only entry point for a single-instance hosted demonstration."""
+
 import os
 from pathlib import Path
 
@@ -18,5 +19,6 @@ def create_hosted_app():
     app = create_app(Gateway(str(path)), admin, {agent: "procurement"})
     app.state.hosted_demo = True
     from .sandbox import Sandbox
+
     app.mount("/sandbox", Sandbox())
     return app

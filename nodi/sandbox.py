@@ -1,4 +1,5 @@
 """Bounded, isolated public simulation workspaces; no owner credentials are shared."""
+
 import secrets
 import tempfile
 import threading
@@ -52,8 +53,17 @@ class Sandbox:
                 gateway = Gateway(directory.name + "/sandbox.db")
                 visa = gateway.issue(draft("Buy a monitor under $300.", "procurement"))["visa_id"]
                 admin, agent, key = (secrets.token_urlsafe(32) for _ in range(3))
-                self.workspaces[key] = Workspace(directory, create_app(gateway, admin, {agent: "procurement"}), now + self.ttl)
-                return 201, {"workspace": key, "admin": admin, "agent": agent, "identity": "procurement", "visa_id": visa, "expires_in": self.ttl}
+                self.workspaces[key] = Workspace(
+                    directory, create_app(gateway, admin, {agent: "procurement"}), now + self.ttl
+                )
+                return 201, {
+                    "workspace": key,
+                    "admin": admin,
+                    "agent": agent,
+                    "identity": "procurement",
+                    "visa_id": visa,
+                    "expires_in": self.ttl,
+                }
             except BaseException:
                 directory.cleanup()
                 raise
@@ -72,14 +82,25 @@ class Sandbox:
                 self.cleanup()
                 workspace = self.workspaces.get(key)
                 if not workspace or workspace.expires <= self.clock():
-                    response = JSONResponse({"detail": "Your sandbox expired. Start a fresh sandbox to continue."}, status_code=410)
+                    response = JSONResponse(
+                        {"detail": "Your sandbox expired. Start a fresh sandbox to continue."},
+                        status_code=410,
+                    )
                 elif workspace.calls >= self.request_limit:
-                    response = JSONResponse({"detail": "Sandbox request limit reached. Start a fresh sandbox."}, status_code=429)
+                    response = JSONResponse(
+                        {"detail": "Sandbox request limit reached. Start a fresh sandbox."},
+                        status_code=429,
+                    )
                 else:
                     workspace.calls += 1
                     workspace.active += 1
             if response is None:
-                child = dict(scope, path=path.removeprefix("/api"), root_path="", raw_path=path.removeprefix("/api").encode())
+                child = dict(
+                    scope,
+                    path=path.removeprefix("/api"),
+                    root_path="",
+                    raw_path=path.removeprefix("/api").encode(),
+                )
                 try:
                     return await workspace.app(child, receive, send)
                 finally:

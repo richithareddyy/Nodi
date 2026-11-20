@@ -1,4 +1,5 @@
 """Unambiguous, finite, UTF-8 JSON for bounded HTTP request bodies."""
+
 import json
 import math
 
@@ -21,8 +22,12 @@ def validate_json(raw: bytes, max_depth: int = 64) -> None:
             raise ValueError("nonfinite JSON number")
         return number
 
-    value = json.loads(raw.decode("utf-8"), object_pairs_hook=unique,
-                       parse_constant=invalid_constant, parse_float=finite_float)
+    value = json.loads(
+        raw.decode("utf-8"),
+        object_pairs_hook=unique,
+        parse_constant=invalid_constant,
+        parse_float=finite_float,
+    )
     pending = [(value, 0)]
     while pending:
         item, depth = pending.pop()

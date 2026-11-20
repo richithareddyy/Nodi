@@ -1,4 +1,5 @@
 """Transactional authorization, approvals, budgets and simulated tool effects."""
+
 import hashlib
 import hmac
 import json
@@ -24,17 +25,32 @@ def encode(value) -> str:
 
 
 class Gateway:
-    def __init__(self, path: str, evaluator: Evaluator | None = None, clock: Callable = time.time, *, backend=None, payment_provider=None, capability_keys=None):
+    def __init__(
+        self,
+        path: str,
+        evaluator: Evaluator | None = None,
+        clock: Callable = time.time,
+        *,
+        backend=None,
+        payment_provider=None,
+        capability_keys=None,
+    ):
         self.path, self.evaluator, self.clock = path, evaluator or DomainEvaluator(), clock
         self.backend, self.payment_provider = backend, payment_provider
         self.capabilities = capability_keys
-        if payment_provider is not None and not str(path).startswith(("postgresql://", "postgres://")):
+        if payment_provider is not None and not str(path).startswith(
+            ("postgresql://", "postgres://")
+        ):
             from pathlib import Path
-            if payment_provider.path is not None and Path(self.path).resolve() == Path(payment_provider.path).resolve():
+
+            if (
+                payment_provider.path is not None
+                and Path(self.path).resolve() == Path(payment_provider.path).resolve()
+            ):
                 raise ValueError("provider and authorization databases must be separate")
         self.store = create_store(self.path)
         with self.transaction() as db:
-            db.executescript('''
+            db.executescript("""
                 CREATE TABLE IF NOT EXISTS visas (
                     id TEXT PRIMARY KEY, parent TEXT REFERENCES visas(id), contract TEXT NOT NULL,
                     issued_at INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'active',
@@ -51,12 +67,16 @@ class Gateway:
                 CREATE TABLE IF NOT EXISTS audit (
                     sequence INTEGER PRIMARY KEY AUTOINCREMENT, event TEXT NOT NULL,
                     previous_hash TEXT NOT NULL, event_hash TEXT NOT NULL);
-            ''')
+            """)
             db.executescript(outbox_store.SCHEMA)
             db.executescript(capability_store.SCHEMA)
-            if payment_provider is not None and db.execute(
+            if (
+                payment_provider is not None
+                and db.execute(
                     "SELECT 1 FROM outbox WHERE state IN ('PENDING','UNKNOWN') AND provider_id != ? LIMIT 1",
-                    (payment_provider.identity,)).fetchone():
+                    (payment_provider.identity,),
+                ).fetchone()
+            ):
                 raise ValueError("unresolved payments require the original provider store")
 
     @contextmanager
@@ -71,7 +91,9 @@ class Gateway:
 
     def _audit(self, db, event: dict) -> None:
         payload = encode({"timestamp": int(self.clock()), **event})
-        previous = db.execute("SELECT event_hash FROM audit ORDER BY sequence DESC LIMIT 1").fetchone()
+        previous = db.execute(
+            "SELECT event_hash FROM audit ORDER BY sequence DESC LIMIT 1"
+        ).fetchone()
         previous_hash = previous[0] if previous else "0" * 64
         digest = hashlib.sha256((previous_hash + payload).encode()).hexdigest()
         self.store.append_audit(db, payload, previous_hash, digest)
@@ -82,7 +104,9 @@ class Gateway:
             if visa_id in seen or len(chain) > 8:
                 raise ValueError("invalid delegation chain")
             seen.add(visa_id)
-            row = db.execute("SELECT * FROM visas WHERE id=?" + getattr(db, "lock_clause", ""), (visa_id,)).fetchone()
+            row = db.execute(
+                "SELECT * FROM visas WHERE id=?" + getattr(db, "lock_clause", ""), (visa_id,)
+            ).fetchone()
             if row is None:
                 raise ValueError("unknown visa")
             chain.append((row, Contract(**json.loads(row["contract"]))))
@@ -97,9 +121,26 @@ class Gateway:
 
     def _insert(self, db, contract: Contract, parent: str | None, *, visa_id=None) -> dict:
         visa_id, now = visa_id or uuid4().hex, int(self.clock())
-        db.execute("INSERT INTO visas(id,parent,contract,issued_at) VALUES(?,?,?,?)", (visa_id, parent, encode(contract.dictionary()), now))
-        self._audit(db, {"event": "visa_issued", "visa_id": visa_id, "parent": parent, "contract": contract.dictionary()})
-        return {"visa_id": visa_id, "parent": parent, "issued_at": now, "status": "active", **contract.dictionary()}
+        db.execute(
+            "INSERT INTO visas(id,parent,contract,issued_at) VALUES(?,?,?,?)",
+            (visa_id, parent, encode(contract.dictionary()), now),
+        )
+        self._audit(
+            db,
+            {
+                "event": "visa_issued",
+                "visa_id": visa_id,
+                "parent": parent,
+                "contract": contract.dictionary(),
+            },
+        )
+        return {
+            "visa_id": visa_id,
+            "parent": parent,
+            "issued_at": now,
+            "status": "active",
+            **contract.dictionary(),
+        }
 
     def delegate(self, principal: str, parent: str, child: Contract) -> dict:
         with self.transaction() as db:
@@ -119,20 +160,31 @@ class Gateway:
                     raise ValueError("child is expired")
                 result = self._insert(db, child, parent)
             except ValueError as exc:
-                self._audit(db, {"event": "delegation_denied", "agent": principal, "parent": parent, "reason": str(exc)})
+                self._audit(
+                    db,
+                    {
+                        "event": "delegation_denied",
+                        "agent": principal,
+                        "parent": parent,
+                        "reason": str(exc),
+                    },
+                )
                 result = {"decision": "DENY", "reason": str(exc)}
             return result
 
     @staticmethod
     def _invalidate_reviews(db, visa_id: str) -> int:
         # UNION deduplicates nodes, including in a malformed cyclic stored graph.
-        db.execute("""WITH RECURSIVE subtree(id) AS (
+        db.execute(
+            """WITH RECURSIVE subtree(id) AS (
             SELECT id FROM visas WHERE id=?
             UNION
             SELECT v.id FROM visas v JOIN subtree s ON v.parent=s.id
         ) UPDATE requests SET approval='invalidated'
           WHERE approval IN ('pending','approved')
-          AND json_extract(action, '$.visa_id') IN (SELECT id FROM subtree)""", (visa_id,))
+          AND json_extract(action, '$.visa_id') IN (SELECT id FROM subtree)""",
+            (visa_id,),
+        )
         return db.execute("SELECT changes()").fetchone()[0]
 
     def revoke(self, visa_id: str) -> None:
@@ -141,7 +193,10 @@ class Gateway:
             outbox_store.cancel_pending(self, db, visa_id)
             db.execute("UPDATE visas SET status='revoked' WHERE id=?", (visa_id,))
             invalidated = self._invalidate_reviews(db, visa_id)
-            self._audit(db, {"event": "visa_revoked", "visa_id": visa_id, "invalidated_reviews": invalidated})
+            self._audit(
+                db,
+                {"event": "visa_revoked", "visa_id": visa_id, "invalidated_reviews": invalidated},
+            )
 
     def modify(self, visa_id: str, contract: Contract) -> None:
         """Human edits are rechecked on all subsequent actions, including approvals."""
@@ -150,32 +205,71 @@ class Gateway:
                 raise ValueError("capability scopes are immutable; revoke and derive a new token")
             chain = self._chain(db, visa_id)
             old = chain[0][1]
-            if (contract.agent_id, contract.mission, contract.purpose) != (old.agent_id, old.mission, old.purpose):
+            if (contract.agent_id, contract.mission, contract.purpose) != (
+                old.agent_id,
+                old.mission,
+                old.purpose,
+            ):
                 raise ValueError("issue a new visa to change identity or mission")
             if len(chain) > 1:
                 attenuation(chain[1][1], contract)
             outbox_store.cancel_pending(self, db, visa_id)
             money, actions = outbox_store.reserved(db, visa_id)
-            if money and (contract.spending_limit < chain[0][0]["spent"] + money or contract.max_actions < chain[0][0]["actions"] + actions):
+            if money and (
+                contract.spending_limit < chain[0][0]["spent"] + money
+                or contract.max_actions < chain[0][0]["actions"] + actions
+            ):
                 raise ValueError("cannot lower caps below committed and uncertain reserved usage")
-            db.execute("UPDATE visas SET contract=? WHERE id=?", (encode(contract.dictionary()), visa_id))
+            db.execute(
+                "UPDATE visas SET contract=? WHERE id=?", (encode(contract.dictionary()), visa_id)
+            )
             db.execute("UPDATE capability_epochs SET epoch=epoch+1 WHERE visa_id=?", (visa_id,))
             invalidated = self._invalidate_reviews(db, visa_id)
-            self._audit(db, {"event": "visa_modified", "visa_id": visa_id, "before": old.dictionary(),
-                             "after": contract.dictionary(), "invalidated_reviews": invalidated})
+            self._audit(
+                db,
+                {
+                    "event": "visa_modified",
+                    "visa_id": visa_id,
+                    "before": old.dictionary(),
+                    "after": contract.dictionary(),
+                    "invalidated_reviews": invalidated,
+                },
+            )
 
-    def approve(self, principal: str, request_id: str, approve: bool, expected_fingerprint: str | None = None) -> dict:
+    def approve(
+        self,
+        principal: str,
+        request_id: str,
+        approve: bool,
+        expected_fingerprint: str | None = None,
+    ) -> dict:
         if type(approve) is not bool:
             raise ValueError("approve must be boolean")
         with self.transaction() as db:
-            row = db.execute("SELECT * FROM requests WHERE principal=? AND id=?", (principal, request_id)).fetchone()
+            row = db.execute(
+                "SELECT * FROM requests WHERE principal=? AND id=?", (principal, request_id)
+            ).fetchone()
             if row is None or row["approval"] != "pending" or int(self.clock()) >= row["deadline"]:
                 raise ValueError("request is not pending or approval has expired")
-            if expected_fingerprint is not None and not hmac.compare_digest(row["fingerprint"], expected_fingerprint):
+            if expected_fingerprint is not None and not hmac.compare_digest(
+                row["fingerprint"], expected_fingerprint
+            ):
                 raise ValueError("review fingerprint does not match the stored action")
             state = "approved" if approve else "rejected"
-            db.execute("UPDATE requests SET approval=? WHERE principal=? AND id=?", (state, principal, request_id))
-            self._audit(db, {"event": "human_review", "agent": principal, "request_id": request_id, "outcome": state, "fingerprint": row["fingerprint"]})
+            db.execute(
+                "UPDATE requests SET approval=? WHERE principal=? AND id=?",
+                (state, principal, request_id),
+            )
+            self._audit(
+                db,
+                {
+                    "event": "human_review",
+                    "agent": principal,
+                    "request_id": request_id,
+                    "outcome": state,
+                    "fingerprint": row["fingerprint"],
+                },
+            )
             return {"approval": state, "request_id": request_id}
 
     def issue_capability(self, visa_id: str, key_id: str) -> dict:
@@ -193,22 +287,49 @@ class Gateway:
         with self.transaction() as db:
             if _capability is not None:
                 capability_store.materialize(self, db, _capability, action)
-            elif capability_store.is_node(db, action.visa_id) or capability_store.request_binding(self, db, principal, action.request_id):
+            elif capability_store.is_node(db, action.visa_id) or capability_store.request_binding(
+                self, db, principal, action.request_id
+            ):
                 raise CapabilityError("capability credential required for this scope or request")
-            previous = db.execute("SELECT * FROM requests WHERE principal=? AND id=?", (principal, action.request_id)).fetchone()
+            previous = db.execute(
+                "SELECT * FROM requests WHERE principal=? AND id=?", (principal, action.request_id)
+            ).fetchone()
             if previous and previous["fingerprint"] != fingerprint:
-                response = {"request_id": action.request_id, "visa_id": action.visa_id, "decision": "DENY", "reason": "request_id is bound to a different action", "executed": False}
-                self._audit(db, {"event": "replay_conflict", "agent": principal, "action": action.dictionary(), **response})
+                response = {
+                    "request_id": action.request_id,
+                    "visa_id": action.visa_id,
+                    "decision": "DENY",
+                    "reason": "request_id is bound to a different action",
+                    "executed": False,
+                }
+                self._audit(
+                    db,
+                    {
+                        "event": "replay_conflict",
+                        "agent": principal,
+                        "action": action.dictionary(),
+                        **response,
+                    },
+                )
                 return response
             if previous and previous["approval"] == "completed":
                 response = {**json.loads(previous["response"]), "replayed": True}
-                self._audit(db, {"event": "idempotent_replay", "agent": principal, "request_id": action.request_id})
+                self._audit(
+                    db,
+                    {
+                        "event": "idempotent_replay",
+                        "agent": principal,
+                        "request_id": action.request_id,
+                    },
+                )
                 return response
             chain, policy_checks, intent, prepared = [], [], None, None
             policy_ms = 0.0
             decision, reason = "DENY", "authorization failed"
             now = int(self.clock())
-            approved = bool(previous and previous["approval"] == "approved" and now < previous["deadline"])
+            approved = bool(
+                previous and previous["approval"] == "approved" and now < previous["deadline"]
+            )
             try:
                 chain = self._chain(db, action.visa_id)
                 if chain[0][1].agent_id != principal:
@@ -220,14 +341,34 @@ class Gateway:
                 prepared = get_domain(chain[0][1].purpose).prepare(action)
                 policy_start = time.perf_counter()
                 for depth, (row, contract) in enumerate(chain):
-                    policy_checks.append({"visa_id": row["id"], "check": "delegation_depth", "passed": depth <= contract.delegation_depth})
+                    policy_checks.append(
+                        {
+                            "visa_id": row["id"],
+                            "check": "delegation_depth",
+                            "passed": depth <= contract.delegation_depth,
+                        }
+                    )
                     reserved_money, reserved_actions = outbox_store.reserved(db, row["id"])
-                    policy_checks.extend({"visa_id": row["id"], **check} for check in checks(contract, row["status"], row["spent"] + reserved_money, row["actions"] + reserved_actions, action, prepared, now))
+                    policy_checks.extend(
+                        {"visa_id": row["id"], **check}
+                        for check in checks(
+                            contract,
+                            row["status"],
+                            row["spent"] + reserved_money,
+                            row["actions"] + reserved_actions,
+                            action,
+                            prepared,
+                            now,
+                        )
+                    )
                 policy_ms = (time.perf_counter() - policy_start) * 1000
                 failures = [p["check"] for p in policy_checks if not p["passed"]]
                 if failures:
                     reason = "Hard policy violation: " + ", ".join(sorted(set(failures)))
-                elif previous and (previous["approval"] in ("rejected", "invalidated") or now >= previous["deadline"]):
+                elif previous and (
+                    previous["approval"] in ("rejected", "invalidated")
+                    or now >= previous["deadline"]
+                ):
                     reason = "approval rejected, invalidated, or expired; submit a new request"
                 else:
                     try:
@@ -238,41 +379,86 @@ class Gateway:
                         # Ensure diagnostics can be persisted before an effect is executed.
                         encode(intent.dictionary())
                     except Exception:
-                        intent = Intent(0, 1, "Intent evaluator unavailable or invalid", ["evaluation failure"], "ASK_HUMAN")
+                        intent = Intent(
+                            0,
+                            1,
+                            "Intent evaluator unavailable or invalid",
+                            ["evaluation failure"],
+                            "ASK_HUMAN",
+                        )
                     if intent.recommended_decision == "DENY":
                         reason = intent.reason
                     else:
-                        needs_review = (intent.recommended_decision == "ASK_HUMAN" or intent.mission_alignment_score < .9 or intent.risk_score >= .7 or any(prepared.cost > c.approval_threshold for _, c in chain))
+                        needs_review = (
+                            intent.recommended_decision == "ASK_HUMAN"
+                            or intent.mission_alignment_score < 0.9
+                            or intent.risk_score >= 0.7
+                            or any(prepared.cost > c.approval_threshold for _, c in chain)
+                        )
                         decision = "ASK_HUMAN" if needs_review and not approved else "ALLOW"
-                        reason = "Exact action requires human approval" if decision == "ASK_HUMAN" else ("Human approval applied after policy recheck" if approved else intent.reason)
+                        reason = (
+                            "Exact action requires human approval"
+                            if decision == "ASK_HUMAN"
+                            else (
+                                "Human approval applied after policy recheck"
+                                if approved
+                                else intent.reason
+                            )
+                        )
             except (ValueError, TypeError, KeyError) as exc:
                 reason = str(exc)
-            deadline = previous["deadline"] if previous else min(now + 300, *(c.expires_at for _, c in chain)) if chain else now
+            deadline = (
+                previous["deadline"]
+                if previous
+                else min(now + 300, *(c.expires_at for _, c in chain))
+                if chain
+                else now
+            )
             # Evaluation can take time while the transaction protects mutable policy state.
             # Recheck time-dependent authority before granting an effect or a review.
             if decision in ("ALLOW", "ASK_HUMAN"):
                 final_now = int(self.clock())
-                final_checks = [{"visa_id": row["id"], "check": "unexpired_after_evaluation",
-                                 "passed": final_now < contract.expires_at} for row, contract in chain]
+                final_checks = [
+                    {
+                        "visa_id": row["id"],
+                        "check": "unexpired_after_evaluation",
+                        "passed": final_now < contract.expires_at,
+                    }
+                    for row, contract in chain
+                ]
                 policy_checks.extend(final_checks)
                 if any(not check["passed"] for check in final_checks):
                     decision, reason = "DENY", "Visa expired during intent evaluation"
                     approved = False
                 elif (previous or decision == "ASK_HUMAN") and final_now >= deadline:
-                    decision, reason = "DENY", "Review deadline elapsed during intent evaluation; submit a new request"
+                    decision, reason = (
+                        "DENY",
+                        "Review deadline elapsed during intent evaluation; submit a new request",
+                    )
                     approved = False
-            response = {"request_id": action.request_id, "visa_id": action.visa_id, "decision": decision,
-                        "reason": reason, "executed": decision == "ALLOW", "policy_checks": policy_checks,
-                        "intent": intent.dictionary() if intent else None,
-                        "human_intervention": approved, "estimated_impact": prepared.impact if prepared else None,
-                        "cost_cents": prepared.cost if prepared else None, "policy_ms": round(policy_ms, 4)}
+            response = {
+                "request_id": action.request_id,
+                "visa_id": action.visa_id,
+                "decision": decision,
+                "reason": reason,
+                "executed": decision == "ALLOW",
+                "policy_checks": policy_checks,
+                "intent": intent.dictionary() if intent else None,
+                "human_intervention": approved,
+                "estimated_impact": prepared.impact if prepared else None,
+                "cost_cents": prepared.cost if prepared else None,
+                "policy_ms": round(policy_ms, 4),
+            }
             queued = decision == "ALLOW" and chain[0][1].purpose == "mock_payment"
             if queued:
-                outbox_store.enqueue(self, db, principal, action, prepared, chain, approved, deadline, response)
+                outbox_store.enqueue(
+                    self, db, principal, action, prepared, chain, approved, deadline, response
+                )
             elif decision == "ALLOW":
                 effect_id = uuid4().hex
                 if chain[0][1].purpose == "sandbox_readonly":
                     from .execution.docker import ExecutionError
+
                     expires_at = min(c.expires_at for _, c in chain)
                     if approved:
                         expires_at = min(expires_at, deadline)
@@ -281,38 +467,109 @@ class Gateway:
                         raise ExecutionError("Authority expired during read; result not committed")
                 else:
                     result = {"simulation": True, **prepared.result}
-                db.execute("INSERT INTO effects VALUES(?,?,?,?,?)", (effect_id, principal, action.request_id, action.tool, encode(result)))
+                db.execute(
+                    "INSERT INTO effects VALUES(?,?,?,?,?)",
+                    (effect_id, principal, action.request_id, action.tool, encode(result)),
+                )
                 for row, _ in chain:
-                    db.execute("UPDATE visas SET spent=spent+?, actions=actions+1 WHERE id=?", (prepared.cost, row["id"]))
+                    db.execute(
+                        "UPDATE visas SET spent=spent+?, actions=actions+1 WHERE id=?",
+                        (prepared.cost, row["id"]),
+                    )
                 response.update({"effect_id": effect_id, "result": result})
             if chain and chain[0][1].agent_id == principal:
-                remaining = min(c.spending_limit - db.execute("SELECT spent FROM visas WHERE id=?", (row["id"],)).fetchone()[0]
-                                - outbox_store.reserved(db, row["id"])[0] for row, c in chain)
+                remaining = min(
+                    c.spending_limit
+                    - db.execute("SELECT spent FROM visas WHERE id=?", (row["id"],)).fetchone()[0]
+                    - outbox_store.reserved(db, row["id"])[0]
+                    for row, c in chain
+                )
                 response["remaining_budget_cents"] = max(0, remaining)
             state = "pending" if decision == "ASK_HUMAN" else "completed"
             if decision == "ASK_HUMAN":
                 response["approval_deadline"] = deadline
             response["evaluation_ms"] = round((time.perf_counter() - start) * 1000, 3)
-            db.execute("INSERT INTO requests(principal,id,fingerprint,action,response,approval,deadline) VALUES(?,?,?,?,?,?,?) ON CONFLICT(principal,id) DO UPDATE SET response=excluded.response, approval=excluded.approval", (principal, action.request_id, fingerprint, encode(action.dictionary()), encode(response), state, deadline))
-            self._audit(db, {"event": "authorization", "agent": principal, "action": action.dictionary(),
-                            "mission": chain[0][1].mission if chain else None,
-                            "delegation_chain": [r["id"] for r, _ in chain], **response})
-        logger.info(encode({"request_id": action.request_id, "agent": principal, "decision": decision, "evaluation_ms": response["evaluation_ms"]}))
+            db.execute(
+                "INSERT INTO requests(principal,id,fingerprint,action,response,approval,deadline) VALUES(?,?,?,?,?,?,?) ON CONFLICT(principal,id) DO UPDATE SET response=excluded.response, approval=excluded.approval",
+                (
+                    principal,
+                    action.request_id,
+                    fingerprint,
+                    encode(action.dictionary()),
+                    encode(response),
+                    state,
+                    deadline,
+                ),
+            )
+            self._audit(
+                db,
+                {
+                    "event": "authorization",
+                    "agent": principal,
+                    "action": action.dictionary(),
+                    "mission": chain[0][1].mission if chain else None,
+                    "delegation_chain": [r["id"] for r, _ in chain],
+                    **response,
+                },
+            )
+        logger.info(
+            encode(
+                {
+                    "request_id": action.request_id,
+                    "agent": principal,
+                    "decision": decision,
+                    "evaluation_ms": response["evaluation_ms"],
+                }
+            )
+        )
         return response
 
     def snapshot(self) -> dict:
         with self.transaction() as db:
-            holds = {row["visa_id"]: (row["amount"], row["actions"]) for row in db.execute(
-                "SELECT visa_id,SUM(amount) AS amount,COUNT(*) AS actions FROM reservations GROUP BY visa_id")}
+            holds = {
+                row["visa_id"]: (row["amount"], row["actions"])
+                for row in db.execute(
+                    "SELECT visa_id,SUM(amount) AS amount,COUNT(*) AS actions FROM reservations GROUP BY visa_id"
+                )
+            }
             return {
-                "visas": [{**dict(r), "reserved_cents": holds.get(r["id"], (0, 0))[0],
-                           "reserved_actions": holds.get(r["id"], (0, 0))[1], "contract": json.loads(r["contract"])} for r in db.execute("SELECT * FROM visas ORDER BY issued_at,id")],
-                "approvals": [{**dict(r), "action": json.loads(r["action"]), "response": json.loads(r["response"])} for r in db.execute("SELECT * FROM requests WHERE approval IN ('pending','approved')")],
-                **({"outbox": [dict(r) for r in db.execute("SELECT * FROM outbox ORDER BY id")],
-                    "reservations": [dict(r) for r in db.execute("SELECT * FROM reservations ORDER BY outbox_id,visa_id")]}
-                   if self.payment_provider is not None else {}),
+                "visas": [
+                    {
+                        **dict(r),
+                        "reserved_cents": holds.get(r["id"], (0, 0))[0],
+                        "reserved_actions": holds.get(r["id"], (0, 0))[1],
+                        "contract": json.loads(r["contract"]),
+                    }
+                    for r in db.execute("SELECT * FROM visas ORDER BY issued_at,id")
+                ],
+                "approvals": [
+                    {
+                        **dict(r),
+                        "action": json.loads(r["action"]),
+                        "response": json.loads(r["response"]),
+                    }
+                    for r in db.execute(
+                        "SELECT * FROM requests WHERE approval IN ('pending','approved')"
+                    )
+                ],
+                **(
+                    {
+                        "outbox": [dict(r) for r in db.execute("SELECT * FROM outbox ORDER BY id")],
+                        "reservations": [
+                            dict(r)
+                            for r in db.execute(
+                                "SELECT * FROM reservations ORDER BY outbox_id,visa_id"
+                            )
+                        ],
+                    }
+                    if self.payment_provider is not None
+                    else {}
+                ),
                 "effects": [dict(r) for r in db.execute("SELECT * FROM effects")],
-                "audit": [{**dict(r), "event": json.loads(r["event"])} for r in db.execute("SELECT * FROM audit ORDER BY sequence")],
+                "audit": [
+                    {**dict(r), "event": json.loads(r["event"])}
+                    for r in db.execute("SELECT * FROM audit ORDER BY sequence")
+                ],
             }
 
     def verify_audit(self) -> bool:

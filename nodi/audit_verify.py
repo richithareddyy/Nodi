@@ -1,4 +1,5 @@
 """Offline verification of an exact audit prefix against a separately held checkpoint."""
+
 import argparse
 import hashlib
 import json
@@ -17,8 +18,10 @@ def strict_json(raw):
                 raise ValueError("duplicate JSON key")
             result[key] = value
         return result
+
     def invalid(_value):
         raise ValueError("nonfinite JSON number")
+
     return json.loads(raw, object_pairs_hook=pairs, parse_constant=invalid)
 
 
@@ -29,7 +32,9 @@ def checkpoint(value):
         raise ValueError("unsupported checkpoint version")
     if type(value["sequence"]) is not int or not 0 <= value["sequence"] <= 2**63 - 1:
         raise ValueError("invalid checkpoint sequence")
-    if not isinstance(value["event_hash"], str) or not re.fullmatch("[a-f0-9]{64}", value["event_hash"]):
+    if not isinstance(value["event_hash"], str) or not re.fullmatch(
+        "[a-f0-9]{64}", value["event_hash"]
+    ):
         raise ValueError("invalid checkpoint hash")
     if value["sequence"] == 0 and value["event_hash"] != ROOT:
         raise ValueError("invalid empty checkpoint")
@@ -50,10 +55,21 @@ class Verifier:
         self.sequence, self.previous = 0, ROOT
 
     def add(self, row):
-        if not isinstance(row, dict) or set(row) != {"sequence", "event", "previous_hash", "event_hash"}:
+        if not isinstance(row, dict) or set(row) != {
+            "sequence",
+            "event",
+            "previous_hash",
+            "event_hash",
+        }:
             raise ValueError("invalid audit record fields")
-        if type(row["sequence"]) is not int or row["sequence"] != self.sequence + 1 or row["sequence"] > self.anchor["sequence"]:
-            raise ValueError("audit sequence is missing, reordered, duplicated, or beyond checkpoint")
+        if (
+            type(row["sequence"]) is not int
+            or row["sequence"] != self.sequence + 1
+            or row["sequence"] > self.anchor["sequence"]
+        ):
+            raise ValueError(
+                "audit sequence is missing, reordered, duplicated, or beyond checkpoint"
+            )
         if not isinstance(row["event"], dict) or row["previous_hash"] != self.previous:
             raise ValueError("invalid audit event or chain link")
         payload = json.dumps(row["event"], sort_keys=True, separators=(",", ":"), allow_nan=False)
@@ -65,8 +81,12 @@ class Verifier:
     def finish(self):
         if self.sequence != self.anchor["sequence"] or self.previous != self.anchor["event_hash"]:
             raise ValueError("audit does not match checkpoint (missing records or changed history)")
-        return {"valid": True, "sequence": self.sequence, "event_hash": self.previous,
-                "scope": "exact prefix matching supplied checkpoint; checkpoint trust must be established separately"}
+        return {
+            "valid": True,
+            "sequence": self.sequence,
+            "event_hash": self.previous,
+            "scope": "exact prefix matching supplied checkpoint; checkpoint trust must be established separately",
+        }
 
 
 def verify(path, anchor):

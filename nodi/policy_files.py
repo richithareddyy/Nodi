@@ -1,4 +1,5 @@
 """Strict JSON policy compilation to ordinary server-stored contracts."""
+
 import argparse
 import json
 import re
@@ -16,13 +17,21 @@ MAX_BYTES = 65536
 
 
 def fields(value, required, optional=frozenset()):
-    if type(value) is not dict or not required <= value.keys() or not value.keys() <= required | optional:
+    if (
+        type(value) is not dict
+        or not required <= value.keys()
+        or not value.keys() <= required | optional
+    ):
         raise ValueError("missing or unknown policy fields")
     return value
 
 
 def names(value, name):
-    if type(value) is not list or len(value) > 100 or any(type(v) is not str or not v or len(v) > 200 for v in value):
+    if (
+        type(value) is not list
+        or len(value) > 100
+        or any(type(v) is not str or not v or len(v) > 200 for v in value)
+    ):
         raise ValueError(f"{name} must be a bounded list of names")
     if len(set(value)) != len(value):
         raise ValueError(f"duplicate entries in {name}")
@@ -53,8 +62,11 @@ def duration(value):
 
 
 def compile_policy(value, *, now=None, agent_id=None):
-    fields(value, {"mission", "domain", "allow", "deny", "budget", "delegation", "approval", "expires_in"},
-           {"agent_id", "resources", "max_actions"})
+    fields(
+        value,
+        {"mission", "domain", "allow", "deny", "budget", "delegation", "approval", "expires_in"},
+        {"agent_id", "resources", "max_actions"},
+    )
     if type(value["domain"]) is not str:
         raise ValueError("domain must be a registered domain name")
     domain = get_domain(value["domain"])
@@ -68,12 +80,16 @@ def compile_policy(value, *, now=None, agent_id=None):
     allowed = names(value["allow"], "allow")
     accepted = domain.tools | domain.aliases.keys()
     if not set(allowed) <= accepted:
-        raise ValueError("allow contains unknown tools; use exact domain tool IDs or documented aliases")
+        raise ValueError(
+            "allow contains unknown tools; use exact domain tool IDs or documented aliases"
+        )
     denied = names(value["deny"], "deny")
     if any(not re.fullmatch(r"[A-Za-z0-9_.?*\[\]!\-]+", pattern) for pattern in denied):
         raise ValueError("deny patterns must contain only tool-name characters and glob syntax")
     resolved = lambda name: domain.aliases.get(name, name)
-    blocked = {resolved(name) for name in accepted if any(fnmatchcase(name, pattern) for pattern in denied)}
+    blocked = {
+        resolved(name) for name in accepted if any(fnmatchcase(name, pattern) for pattern in denied)
+    }
     baseline = domain.default_contract(identity, now)
     blocked.update(baseline.forbidden_operations)
     effective = sorted({resolved(name) for name in allowed} - blocked)
@@ -91,24 +107,44 @@ def compile_policy(value, *, now=None, agent_id=None):
     approval = fields(value["approval"], {"purchase_above_usd"})
     delegation = fields(value["delegation"], {"max_depth"})
     max_actions = value.get("max_actions", baseline.max_actions)
-    contract = replace(baseline, mission=value["mission"], allowed_tools=effective,
-                       forbidden_operations=sorted(blocked),
-                       allowed_resources=sorted(set(resource_allow) - set(resource_deny)),
-                       forbidden_resources=sorted(resource_deny),
-                       spending_limit=cents(budget["max_usd"]),
-                       maximum_transaction=cents(budget["max_transaction_usd"]),
-                       approval_threshold=cents(approval["purchase_above_usd"]),
-                       delegation_depth=delegation["max_depth"], max_actions=max_actions,
-                       expires_at=now + duration(value["expires_in"]))
-    return {"domain": domain.name, "contract": contract.dictionary(), "mode": {"sandbox": "sandbox-readonly", "payments": "mock-payment-outbox"}.get(domain.name, "simulation"),
-            "effective_tools": effective, "blocked_tools": sorted(blocked),
-            "unmatched_deny_patterns": [pattern for pattern in denied
-                                        if not any(fnmatchcase(name, pattern) for name in accepted)],
-            "resources_defaulted": "resources" not in value,
-            "aliases_used": {name: resolved(name) for name in allowed if name in domain.aliases},
-            "tool_arguments": {name: {"required": sorted(domain.tool_schemas[name][0]),
-                                      "optional": sorted(domain.tool_schemas[name][1])} for name in effective},
-            "scope": "compilation only; an administrator must review and issue this contract"}
+    contract = replace(
+        baseline,
+        mission=value["mission"],
+        allowed_tools=effective,
+        forbidden_operations=sorted(blocked),
+        allowed_resources=sorted(set(resource_allow) - set(resource_deny)),
+        forbidden_resources=sorted(resource_deny),
+        spending_limit=cents(budget["max_usd"]),
+        maximum_transaction=cents(budget["max_transaction_usd"]),
+        approval_threshold=cents(approval["purchase_above_usd"]),
+        delegation_depth=delegation["max_depth"],
+        max_actions=max_actions,
+        expires_at=now + duration(value["expires_in"]),
+    )
+    return {
+        "domain": domain.name,
+        "contract": contract.dictionary(),
+        "mode": {"sandbox": "sandbox-readonly", "payments": "mock-payment-outbox"}.get(
+            domain.name, "simulation"
+        ),
+        "effective_tools": effective,
+        "blocked_tools": sorted(blocked),
+        "unmatched_deny_patterns": [
+            pattern
+            for pattern in denied
+            if not any(fnmatchcase(name, pattern) for name in accepted)
+        ],
+        "resources_defaulted": "resources" not in value,
+        "aliases_used": {name: resolved(name) for name in allowed if name in domain.aliases},
+        "tool_arguments": {
+            name: {
+                "required": sorted(domain.tool_schemas[name][0]),
+                "optional": sorted(domain.tool_schemas[name][1]),
+            }
+            for name in effective
+        },
+        "scope": "compilation only; an administrator must review and issue this contract",
+    }
 
 
 def load_policy(path, **options):
@@ -124,11 +160,21 @@ def main(argv=None):
     parser = argparse.ArgumentParser(prog="python -m nodi policy", description=__doc__)
     parser.add_argument("operation", choices=["validate", "explain"])
     parser.add_argument("file")
-    parser.add_argument("--agent", help="Identity for the compiled contract; defaults to policy agent_id or domain")
+    parser.add_argument(
+        "--agent", help="Identity for the compiled contract; defaults to policy agent_id or domain"
+    )
     args = parser.parse_args(argv)
     try:
         result = load_policy(args.file, agent_id=args.agent)
     except (ValueError, TypeError, OSError, RecursionError) as exc:
         print(json.dumps({"valid": False, "error": str(exc)}, ensure_ascii=True), file=sys.stderr)
         raise SystemExit(2) from None
-    print(json.dumps({"valid": True, **(result if args.operation == "explain" else {"domain": result["domain"]})}, indent=2))
+    print(
+        json.dumps(
+            {
+                "valid": True,
+                **(result if args.operation == "explain" else {"domain": result["domain"]}),
+            },
+            indent=2,
+        )
+    )
