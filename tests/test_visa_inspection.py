@@ -1,11 +1,13 @@
 from dataclasses import replace
+
 import pytest
 from fastapi.testclient import TestClient
+
 from nodi.api import create_app
 from nodi.gateway import Gateway
 from nodi.models import Action, draft
-from nodi.queries import ReadModel
 from nodi.operator import parser, run
+from nodi.queries import ReadModel
 
 
 @pytest.fixture

@@ -1,5 +1,7 @@
 from dataclasses import replace
+
 import pytest
+
 from nodi.demo import run
 from nodi.gateway import Gateway
 from nodi.models import Action, draft

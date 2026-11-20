@@ -1,5 +1,6 @@
 """Bounded local generation and deterministic CI; override for deeper exploration."""
 import os
+
 from hypothesis import settings
 
 settings.register_profile("nodi", max_examples=60, stateful_step_count=60, deadline=None)
@@ -13,7 +14,8 @@ settings.load_profile(os.environ.get("HYPOTHESIS_PROFILE", "nodi"))
 # File-permission/SQLite worker fixtures remain SQLite; portable ledger fixtures use
 # isolated PostgreSQL schemas. Child crash workers receive the explicit DSN in g.path.
 import hashlib
-from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+
 import pytest
 
 
@@ -23,8 +25,9 @@ def postgres_ledgers(request, monkeypatch):
     if not target or request.node.path.name in ('test_storage.py','test_hosted.py'):
         yield
         return
-    from nodi.gateway import Gateway
     import psycopg
+
+    from nodi.gateway import Gateway
     original=Gateway.__init__
     schemas=set()
     def initialize(self,path,*args,**kwargs):

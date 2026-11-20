@@ -1,26 +1,28 @@
 """Scripted unit checks validate harness wiring, never measured model performance."""
 import asyncio
+import json
+import threading
 from argparse import Namespace
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from dataclasses import replace
-import json
 from pathlib import Path
-import threading
-from concurrent.futures import ThreadPoolExecutor
+
 import pytest
-from benchmarks.injection.suite import build, load
-from benchmarks.injection.environment import Environment, MODES
-from benchmarks.injection.runner import episode, run
+
+from benchmarks.injection.environment import MODES, Environment
 from benchmarks.injection.oracle import classify
 from benchmarks.injection.provider import Model, ProviderError
 from benchmarks.injection.report import summarize
+from benchmarks.injection.runner import episode, run
+from benchmarks.injection.suite import build, load
 from benchmarks.metrics import rate
 from benchmarks.purpose.contention import measure
 from benchmarks.purpose.run import run as purpose_run
 from nodi.domains import get_domain
 from nodi.gateway import Gateway
-from nodi.models import Action
 from nodi.intent import DomainEvaluator, Intent
+from nodi.models import Action
 
 ROOT=Path(__file__).resolve().parents[1]
 

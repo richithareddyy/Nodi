@@ -1,15 +1,16 @@
 """Domain dispatch preserves the gateway boundary and simulated execution."""
-from dataclasses import replace
 import io
 import json
+from dataclasses import replace
 
 import pytest
+
 from nodi.domains import get_domain
-from nodi.gateway import Gateway
-from nodi.models import Action, Contract
-from nodi.intent import Intent
-from nodi.semantic import SemanticReviewer
 from nodi.evaluation import run
+from nodi.gateway import Gateway
+from nodi.intent import Intent
+from nodi.models import Action, Contract
+from nodi.semantic import SemanticReviewer
 
 NOW = 2_000_000_000
 

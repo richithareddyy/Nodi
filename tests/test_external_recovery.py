@@ -1,20 +1,22 @@
 """Actual subprocess death across an HTTP boundary with an independent durable store."""
-from concurrent.futures import ThreadPoolExecutor
-from dataclasses import replace
 import json
 import os
 import secrets
 import subprocess
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import replace
+
 import pytest
+from test_outbox import NOW, assert_conserved
+
 from benchmarks.recovery.client import TestServiceProvider
 from nodi.domains import get_domain
 from nodi.gateway import Gateway
 from nodi.mock_payments import MockPaymentProvider
 from nodi.models import Action
 from nodi.outbox import Outbox
-from test_outbox import assert_conserved, NOW
 
 
 @pytest.fixture

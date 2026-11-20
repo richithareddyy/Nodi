@@ -1,13 +1,15 @@
 """Strict compilation, deny precedence, exact money and CLI error behavior."""
-from dataclasses import replace
-from decimal import Decimal
 import json
-from pathlib import Path
 import subprocess
 import sys
+from dataclasses import replace
+from decimal import Decimal
+from pathlib import Path
 
 import pytest
-from hypothesis import given, strategies as st
+from hypothesis import given
+from hypothesis import strategies as st
+
 from nodi.gateway import Gateway
 from nodi.models import Action, Contract
 from nodi.policy_files import compile_policy, load_policy

@@ -1,18 +1,19 @@
 import json
 import os
-from pathlib import Path
 import socket
 import subprocess
 import sys
 import time
 from urllib.error import HTTPError, URLError
+
 import pytest
 from fastapi.testclient import TestClient
+
 from nodi.api import create_app
 from nodi.gateway import Gateway
 from nodi.models import Action, draft
-from nodi.queries import ReadModel
 from nodi.operator import ControlClient, OperatorError, parser, run
+from nodi.queries import ReadModel
 
 ADMIN = "admin-" + "a" * 40
 AGENT = "agent-" + "b" * 40

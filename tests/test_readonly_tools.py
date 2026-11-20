@@ -1,12 +1,12 @@
 """Read confinement and SQL/command boundaries; no Docker required."""
-import json
 import os
-import sqlite3
 import socket
+import sqlite3
 from types import SimpleNamespace
 
 import pytest
-from nodi.execution import worker, egress
+
+from nodi.execution import egress, worker
 from nodi.execution.validation import destination, validate
 
 

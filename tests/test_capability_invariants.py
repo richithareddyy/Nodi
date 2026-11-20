@@ -1,15 +1,16 @@
 """Generated offline token trees and lifecycle histories preserve ledger invariants."""
-from dataclasses import replace
-import json
 import tempfile
+from dataclasses import replace
+
 import pytest
 from hypothesis import strategies as st
-from hypothesis.stateful import RuleBasedStateMachine, initialize, rule, invariant
-from nodi.capabilities import Keys, CapabilityError, attenuate, describe, unpack, pack
+from hypothesis.stateful import RuleBasedStateMachine, initialize, invariant, rule
+from test_invariants import NOW, PRICES, RemoteResults, assert_narrower, narrow
+
+from nodi.capabilities import CapabilityError, Keys, attenuate, describe, pack, unpack
 from nodi.gateway import Gateway
 from nodi.models import Action, Contract
 from nodi.semantic import SemanticReviewer
-from test_invariants import assert_narrower, narrow, RemoteResults, PRICES, NOW
 
 
 class CapabilityHistory(RuleBasedStateMachine):

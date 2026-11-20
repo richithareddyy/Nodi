@@ -1,14 +1,16 @@
 """Generated interleavings independently compare provider charges and ledger holds."""
-from dataclasses import replace
 import tempfile
+from dataclasses import replace
+
 from hypothesis import strategies as st
 from hypothesis.stateful import RuleBasedStateMachine, invariant, rule
+from test_outbox import assert_conserved
+
 from nodi.domains import get_domain
 from nodi.gateway import Gateway
-from nodi.models import Action
 from nodi.mock_payments import MockPaymentProvider
+from nodi.models import Action
 from nodi.outbox import Outbox
-from test_outbox import assert_conserved
 
 
 class ProcessCrash(BaseException):

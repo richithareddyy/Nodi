@@ -8,13 +8,14 @@ from urllib.parse import parse_qs, urlsplit
 
 import pytest
 from fastapi.testclient import TestClient
+
 from nodi.api import create_app
 from nodi.audit_export import export_audit, save_checkpoint
 from nodi.audit_verify import ROOT, Verifier, checkpoint, load_checkpoint, strict_json, verify
 from nodi.gateway import Gateway
 from nodi.models import draft
-from nodi.queries import ReadModel
 from nodi.operator import parser, run
+from nodi.queries import ReadModel
 
 
 @pytest.fixture

@@ -1,6 +1,8 @@
 import io
 import json
+
 import pytest
+
 from nodi.intent import Intent
 from nodi.models import Action, draft
 from nodi.semantic import SemanticReviewer

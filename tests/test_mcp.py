@@ -6,12 +6,14 @@ import sys
 import time
 
 import pytest
+
 pytest.importorskip("mcp")
 import httpx2
 from mcp import Client, StdioServerParameters
+
 from nodi.api import ActionBody
 from nodi.gateway import Gateway
-from nodi.mcp_server import GatewayClient, GatewayCallError, create_mcp
+from nodi.mcp_server import GatewayCallError, GatewayClient, create_mcp
 
 TOKEN = "agent-" + "x" * 40
 

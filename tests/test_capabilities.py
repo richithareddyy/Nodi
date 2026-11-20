@@ -1,20 +1,29 @@
 """Offline attenuation, cryptographic rejection, and current-ledger enforcement."""
 import asyncio
-from concurrent.futures import ThreadPoolExecutor
-from dataclasses import replace
 import json
-import os
-from pathlib import Path
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import replace
+
 import pytest
 from fastapi.testclient import TestClient
-from nodi.api import create_app, ActionBody
-from nodi.capabilities import Keys, CapabilityError, attenuate, describe, unpack, pack, chain_mac, from_config
-from nodi.gateway import Gateway
+
+from nodi.api import create_app
+from nodi.capabilities import (
+    CapabilityError,
+    Keys,
+    attenuate,
+    chain_mac,
+    describe,
+    from_config,
+    pack,
+    unpack,
+)
 from nodi.domains import get_domain
-from nodi.models import Action
+from nodi.gateway import Gateway
 from nodi.mock_payments import MockPaymentProvider
+from nodi.models import Action
 from nodi.outbox import Outbox
 from nodi.queries import ReadModel
 
@@ -198,7 +207,8 @@ def test_http_and_status_scope(system):
 def test_mcp_uses_capability_without_new_tool_surface(system):
     httpx=pytest.importorskip('httpx2')
     from mcp import Client
-    from nodi.mcp_server import create_mcp,GatewayClient
+
+    from nodi.mcp_server import GatewayClient, create_mcp
     g,keys,now,c,visa,root=system
     token,_=child(root,c)
     server=create_mcp(GatewayClient('http://127.0.0.1',token,transport=httpx.ASGITransport(app=create_app(g,'a'*32,{'b'*32:'buyer'}))))

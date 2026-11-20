@@ -1,19 +1,20 @@
 """Generated authority histories, checked against an independent effect ledger."""
-from concurrent.futures import ThreadPoolExecutor
-from dataclasses import replace
 import hashlib
 import io
 import json
 import tempfile
 import threading
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import replace
 
 import pytest
-from hypothesis import example, given, strategies as st
+from hypothesis import example, given
+from hypothesis import strategies as st
 from hypothesis.stateful import RuleBasedStateMachine, initialize, invariant, precondition, rule
 
 from nodi.gateway import Gateway, encode
 from nodi.intent import Intent
-from nodi.models import Action, Contract, RESOURCES, TOOLS
+from nodi.models import RESOURCES, TOOLS, Action, Contract
 from nodi.policy import attenuation
 from nodi.semantic import SemanticReviewer
 

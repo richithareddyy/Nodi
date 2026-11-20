@@ -1,10 +1,12 @@
+import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
-import sqlite3
+
 import pytest
+
 from nodi.gateway import Gateway
 from nodi.intent import Intent
-from nodi.models import Action, Contract, draft
+from nodi.models import Action, draft
 
 
 @pytest.fixture

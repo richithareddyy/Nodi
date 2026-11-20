@@ -1,6 +1,8 @@
 from dataclasses import replace
+
 import pytest
 from fastapi.testclient import TestClient
+
 from nodi.api import create_app
 from nodi.gateway import Gateway
 from nodi.models import Action, draft

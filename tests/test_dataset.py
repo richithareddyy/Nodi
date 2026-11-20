@@ -1,7 +1,9 @@
 import json
 import subprocess
 import sys
+
 import pytest
+
 import nodi.evaluation as evaluation
 
 CASE = {'id':'valid', 'category':'legitimate', 'expected':'ALLOW', 'dangerous':False,

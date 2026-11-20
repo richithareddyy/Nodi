@@ -1,5 +1,7 @@
 from dataclasses import replace
+
 import pytest
+
 from nodi.gateway import Gateway
 from nodi.intent import ProcurementEvaluator
 from nodi.models import Action, draft

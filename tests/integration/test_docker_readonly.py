@@ -1,18 +1,18 @@
 """Opt-in real-container checks. CI enables these after building the worker image."""
-from dataclasses import replace
 import json
 import os
-from pathlib import Path
 import sqlite3
 import subprocess
 import time
+from pathlib import Path
 from uuid import uuid4
 
-from fastapi.testclient import TestClient
 import pytest
+from fastapi.testclient import TestClient
+
 from nodi.api import create_app
 from nodi.domains import get_domain
-from nodi.execution.docker import DockerBackend, ExecutionError
+from nodi.execution.docker import DockerBackend
 from nodi.gateway import Gateway
 from nodi.models import Action
 

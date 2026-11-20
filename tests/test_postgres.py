@@ -1,8 +1,10 @@
 """PostgreSQL-specific adapter behavior; portable enforcement tests run separately."""
-from decimal import Decimal
 import os
+from decimal import Decimal
+
 import pytest
-from nodi.postgres import sql,rows,StoreError
+
+from nodi.postgres import StoreError, rows, sql
 
 
 def test_static_dialect_translation():
@@ -48,10 +50,10 @@ def test_postgres_error_redacts_credentials():
 
 
 def test_audit_export_remains_contiguous_after_rollback(tmp_path):
+    from nodi.audit_verify import Verifier
     from nodi.gateway import Gateway
     from nodi.models import Contract
     from nodi.queries import ReadModel
-    from nodi.audit_verify import Verifier
     gateway=Gateway(str(tmp_path/'rollback.db'))
     gateway.issue(Contract('one','Buy monitors'))
     with pytest.raises(RuntimeError):

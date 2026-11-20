@@ -2,16 +2,18 @@ import importlib.util
 import io
 import json
 import os
-from pathlib import Path
 import socket
 import subprocess
 import sys
 import time
+from pathlib import Path
 from urllib.error import HTTPError
-import pytest
+
 import httpx
-from nodi.models import draft
+import pytest
+
 from nodi.gateway import Gateway
+from nodi.models import draft
 
 SCRIPT = Path(__file__).resolve().parents[1] / 'examples' / 'agent_client.py'
 spec = importlib.util.spec_from_file_location('agent_example', SCRIPT)

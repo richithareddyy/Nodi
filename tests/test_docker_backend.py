@@ -1,16 +1,16 @@
 """Gateway/backend ordering, denial finality, failures and launch constraints."""
-from dataclasses import replace
-import json
 import subprocess
+from dataclasses import replace
 from types import SimpleNamespace
 
-from fastapi.testclient import TestClient
 import pytest
+from fastapi.testclient import TestClient
+
 from nodi.api import create_app
 from nodi.domains import get_domain
+from nodi.execution.docker import DockerBackend, ExecutionError, from_config
 from nodi.gateway import Gateway
 from nodi.models import Action, draft
-from nodi.execution.docker import DockerBackend, ExecutionError, from_config
 
 NOW = 2_000_000_000
 

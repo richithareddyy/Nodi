@@ -1,7 +1,9 @@
-from dataclasses import replace
 import io
 import json
+from dataclasses import replace
+
 import pytest
+
 from nodi.gateway import Gateway
 from nodi.intent import Intent
 from nodi.models import Action, draft

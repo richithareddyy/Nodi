@@ -1,5 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
+
 from nodi.hosted import create_hosted_app
 
 
