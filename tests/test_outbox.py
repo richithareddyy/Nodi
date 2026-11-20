@@ -52,7 +52,7 @@ def assert_conserved(gateway, provider):
         def under(leaf):
             nodes = {v["id"]: v for v in state["visas"]}
             while leaf:
-                if leaf == node["id"]:
+                if leaf == node["id"]:  # noqa: B023 - called below before node changes.
                     return True
                 leaf = nodes[leaf]["parent"]
             return False

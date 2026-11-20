@@ -70,14 +70,15 @@ def measure(workers=8, delay=0.05):
             )["visa_id"]
             barrier = threading.Barrier(workers)
 
+            # map is consumed and the executor joins before any loop variable is rebound.
             def work(i):
-                barrier.wait(timeout=10)
+                barrier.wait(timeout=10)  # noqa: B023 - workers join in this iteration.
                 start = time.perf_counter()
-                result = gateway.execute(
+                result = gateway.execute(  # noqa: B023 - workers join in this iteration.
                     "agent",
                     Action(
                         f"call-{i}",
-                        visa,
+                        visa,  # noqa: B023 - workers join in this iteration.
                         "search_products",
                         "catalog:monitors",
                         {"query": "monitor"},

@@ -31,7 +31,11 @@ def run(dataset: str | None = None, *, domain: str = "procurement") -> dict:
     for case in cases:
         with tempfile.TemporaryDirectory() as directory:
             now = [2000000000]
-            gateway = Gateway(directory + "/evaluation.db", clock=lambda: now[0])
+            # All clock calls finish synchronously within this case.
+            gateway = Gateway(
+                directory + "/evaluation.db",
+                clock=lambda: now[0],  # noqa: B023 - no clock escapes this iteration.
+            )
             contract = plugin.default_contract(plugin.name, now[0])
             visa = gateway.issue(contract)["visa_id"]
             precondition = case.get("precondition")
