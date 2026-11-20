@@ -96,7 +96,10 @@ def run(dataset: str | None = None, *, domain: str = "procurement") -> dict:
     drift = [r for r in records if r["category"] == "mission_drift"]
     injection = [r for r in records if r["category"] == "prompt_injection"]
     escalation = [r for r in records if r["category"] == "delegation_escalation"]
-    ratio = lambda rows, predicate: sum(predicate(r) for r in rows) / len(rows) if rows else None
+
+    def ratio(rows, predicate):
+        return sum(predicate(r) for r in rows) / len(rows) if rows else None
+
     return {
         "report_schema_version": 1,
         "dataset_sha256": loaded.sha256,

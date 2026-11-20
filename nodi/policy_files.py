@@ -86,7 +86,10 @@ def compile_policy(value, *, now=None, agent_id=None):
     denied = names(value["deny"], "deny")
     if any(not re.fullmatch(r"[A-Za-z0-9_.?*\[\]!\-]+", pattern) for pattern in denied):
         raise ValueError("deny patterns must contain only tool-name characters and glob syntax")
-    resolved = lambda name: domain.aliases.get(name, name)
+
+    def resolved(name):
+        return domain.aliases.get(name, name)
+
     blocked = {
         resolved(name) for name in accepted if any(fnmatchcase(name, pattern) for pattern in denied)
     }
