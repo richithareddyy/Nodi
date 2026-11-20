@@ -210,8 +210,17 @@ async def run(args):
         "server_environment": os.environ.get(
             "NODI_BENCH_SERVER_NOTE", "Not recorded; Docker info describes the client host only."
         ),
-        "method": "Barrier-synchronized bursts using asyncio and bounded thread pools; connection/approval costs included; no retries, models or external effects.",
-        "limitations": "Small local bursts, not sustained production load. Global audit lock serializes writes. Percentiles include errors; samples and errors retained. No latency confidence interval claimed.",
+        "method": (
+            "Barrier-synchronized bursts using asyncio and bounded thread "
+            "pools; connection/approval costs included; no retries, models "
+            "or external effects."
+        ),
+        "limitations": (
+            "Small local bursts, not sustained production load. Global "
+            "audit lock serializes writes. Percentiles include errors; "
+            "samples and errors retained. No latency confidence interval "
+            "claimed."
+        ),
         "trials": [],
     }
     report.pop(

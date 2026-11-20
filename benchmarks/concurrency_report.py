@@ -47,22 +47,49 @@ def render(report):
     lines = [
         "# Local concurrency measurements",
         "",
-        "Measured ledger operations; no real purchases or model calls. Source/version/hardware details and raw observations are in the accompanying JSON.",
+        (
+            "Measured ledger operations; no real purchases or model calls. "
+            "Source/version/hardware details and raw observations are in "
+            "the accompanying JSON."
+        ),
         "",
-        "| Backend | Workers | Workload | Trials / operations | Errors | Mean ops/s [descriptive 95% interval] | p50 / p95 / p99 ms |",
+        (
+            "| Backend | Workers | Workload | Trials / operations | Errors "
+            "| Mean ops/s [descriptive 95% interval] | p50 / p95 / p99 ms |"
+        ),
         "| --- | ---: | --- | ---: | ---: | --- | --- |",
     ]
     for row in summarize(report):
         lo, hi = row["bootstrap95"]
         lat = row["latency"]
         lines.append(
-            f"| {row['backend']} | {row['workers']} | {row['workload']} | {row['trials']} / {row['n']} | {row['errors']} | {row['ops_per_second']:.1f} [{lo:.1f}, {hi:.1f}] | {lat['p50_ms']:.1f} / {lat['p95_ms']:.1f} / {lat['p99_ms']:.1f} |"
+            f"| {row['backend']} | {row['workers']} | {row['workload']} | {row['trials']} / "
+            f"{row['n']} | {row['errors']} | {row['ops_per_second']:.1f} [{lo:.1f}, "
+            f"{hi:.1f}] | {lat['p50_ms']:.1f} / {lat['p95_ms']:.1f} / {lat['p99_ms']:.1f} |"
         )
     lines += [
         "",
-        "Intervals resample entire trials (2,000 deterministic bootstrap draws). With only a few local trials they are descriptive, not reliable population or production bounds. Latency uses all recorded operations, including errors. No percentile confidence intervals are claimed.",
+        (
+            "Intervals resample entire trials (2,000 deterministic "
+            "bootstrap draws). With only a few local trials they are "
+            "descriptive, not reliable population or production bounds. "
+            "Latency uses all recorded operations, including errors. No "
+            "percentile confidence intervals are claimed."
+        ),
         "",
-        "SQLite runs on the client filesystem; PostgreSQL may run in Docker or on another host. Consult server_environment in the JSON: these are deployment-path comparisons, not isolated database-engine rankings. PostgreSQL uses a bounded pool and retains a global write/audit-order lock. Setup and teardown are excluded; connection checkout, approvals and database work are included. Throughput counts completed gateway operations including denials and replays, not new purchases. HTTP/MCP transport is excluded. These synchronized bursts do not establish sustained throughput, horizontal scalability or third-party effect reliability.",
+        (
+            "SQLite runs on the client filesystem; PostgreSQL may run in "
+            "Docker or on another host. Consult server_environment in the "
+            "JSON: these are deployment-path comparisons, not isolated "
+            "database-engine rankings. PostgreSQL uses a bounded pool and "
+            "retains a global write/audit-order lock. Setup and teardown "
+            "are excluded; connection checkout, approvals and database "
+            "work are included. Throughput counts completed gateway "
+            "operations including denials and replays, not new purchases. "
+            "HTTP/MCP transport is excluded. These synchronized bursts do "
+            "not establish sustained throughput, horizontal scalability or "
+            "third-party effect reliability."
+        ),
     ]
     return "\n".join(lines) + "\n"
 

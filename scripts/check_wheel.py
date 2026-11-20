@@ -137,7 +137,11 @@ def main():
         ]:
             raise RuntimeError("installed demo failed")
         print(
-            "Wheel installed outside checkout: procurement/research evaluations, policy CLI, outbox recovery, capability delegation and all demo scenarios passed."
+            (
+                "Wheel installed outside checkout: procurement/research "
+                "evaluations, policy CLI, outbox recovery, capability "
+                "delegation and all demo scenarios passed."
+            )
         )
 
 

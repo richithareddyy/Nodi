@@ -49,7 +49,11 @@ def measure(workers=8, delay=0.05):
         **metadata(),
         "workers": workers,
         "configured_delay_ms": delay * 1000,
-        "method": "Time from transaction entry through BEGIN IMMEDIATE; includes file/connect overhead. One barrier-synchronized batch per condition.",
+        "method": (
+            "Time from transaction entry through BEGIN IMMEDIATE; includes "
+            "file/connect overhead. One barrier-synchronized batch per "
+            "condition."
+        ),
         "conditions": {},
     }
     with tempfile.TemporaryDirectory(prefix="nodi-lock-") as directory:

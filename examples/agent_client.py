@@ -99,11 +99,16 @@ class AgentClient:
                     "scope": "absent from this snapshot; an in-flight call may still commit",
                 }
             raise ClientError(
-                f"Gateway returned HTTP {exc.code}. Preserve the original request ID and exact action; no automatic retry was attempted."
+                f"Gateway returned HTTP {exc.code}. Preserve the original request ID and "
+                f"exact action; no automatic retry was attempted."
             ) from None
         except (URLError, OSError, ValueError, TypeError):
             raise ClientError(
-                "Gateway result unavailable or invalid. Outcome is uncertain; preserve the original request ID and exact action. No automatic retry was attempted."
+                (
+                    "Gateway result unavailable or invalid. Outcome is uncertain; "
+                    "preserve the original request ID and exact action. No "
+                    "automatic retry was attempted."
+                )
             ) from None
 
 
@@ -126,7 +131,10 @@ def main(argv=None):
         print(str(exc), file=sys.stderr)
     except (ValueError, KeyError):
         print(
-            "Check the agent credential, gateway origin, request ID and visa. No automatic retry was attempted.",
+            (
+                "Check the agent credential, gateway origin, request ID and "
+                "visa. No automatic retry was attempted."
+            ),
             file=sys.stderr,
         )
     return 1
