@@ -21,7 +21,7 @@ the baseline or bypass hard policy. Evaluator failures require human review.
 
 ## Run locally
 
-Requires Python 3.11+ on macOS or Linux.
+Requires Python 3.11+ on macOS or Linux. Run these commands from the repository root.
 
 ```sh
 python3 -m venv .venv
@@ -77,6 +77,34 @@ Tests cover budget races, delegation, approval replay, expiry, and rollback. The
 
 [Generated invariant tests](docs/invariants.md) · [Detailed walkthrough and results](GUIDE.md) · [Architecture](docs/architecture.md) · [Security limits](SECURITY.md) · [Evaluation](docs/evaluation.md)
 
+## Development checks and CI
+
+Install the optional test dependencies and pinned linter for the full local suite:
+
+```sh
+python -m pip install -e '.[test,mcp,postgres,lint]' -c requirements.lock
+python -m ruff check .
+python -m pytest -q -rs
+```
+
+Ruff targets Python 3.11, uses a 100-character line limit, and checks `E`, `F`, `I`,
+`B`, `UP`, and `SIM`. The minimal `.[test]` install above can additionally skip
+MCP- and PostgreSQL-driver-dependent tests.
+
+Without integration setup, the full local command skips five Docker tests and one
+PostgreSQL-only check. Docker tests need `NODI_TEST_SANDBOX_IMAGE`; the public HTTPS
+smoke test also needs `NODI_TEST_PUBLIC_HTTP=1`. The PostgreSQL check needs
+`NODI_TEST_POSTGRES_DSN` pointing to a dedicated test database. Follow the
+[Docker setup](docs/sandbox-execution.md#reproducible-checks) and
+[PostgreSQL setup](docs/postgres.md#tests-and-benchmarks) before enabling them.
+
+[CI](.github/workflows/tests.yml) runs SQLite and PostgreSQL suites on Python 3.11
+and 3.14, Ruff in both SQLite jobs, and real Docker checks including the public
+HTTPS smoke test. Each CI coverage profile permits only the named skips assigned
+to another job; missing required setup, unexpected skips, and skipped modules fail
+the job. Local opt-in behavior is unchanged. The public HTTPS check depends on the
+availability of its external documentation site.
+
 ## Evaluation and external recovery
 
 The [benchmark tools](benchmarks/README.md) include a 200-attack tool-output injection
@@ -112,3 +140,7 @@ shared-budget, approval and duplicate-request races at 10/50/100 workers.
 [Recorded local results and uncertainty](benchmarks/results/concurrency/README.md)
 include raw samples and deployment/hardware context; they are not production
 capacity estimates.
+
+## License
+
+[MIT](LICENSE) — Copyright (c) 2026 Richitha Rekula.
