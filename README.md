@@ -2,18 +2,22 @@
 
 You ask an AI agent to buy a monitor within a budget. What stops it from overspending, sharing unrelated files, or giving another agent more permission than it has? Nodi checks each proposed tool action against limits you set for the task, then allows it, blocks it, or asks for your approval.
 
-**[Try the sandbox](https://nodi-7fsc.onrender.com/)** — the free instance may take a moment to wake up. Tools are simulated. The browser demo covers monitor procurement; the backend also supports a bounded research domain. This is a prototype, not a general defense against prompt injection.
+**[Try the sandbox](https://nodi-7fsc.onrender.com/)** — the free instance may take a moment to wake up. Tools in this demo are simulated, and hosted data is temporary and can reset on restart or redeployment. The browser demo covers monitor procurement; the backend also supports a bounded research simulation using fixed page and file fixtures. This is a prototype, not a general defense against prompt injection.
 
 ## What gets checked
 
 A temporary “mission contract” sets the allowed tools, resources, budget, and expiry. Every action must satisfy those limits, including limits inherited from a parent agent.
 
 - Delegated agents share the original budget, so splitting a task cannot create extra spending money.
-- Approval applies to one exact action and expires after five minutes. It cannot override a hard limit.
+- Approval applies to one exact action. Its deadline is at most five minutes from the first request, capped by the earliest contract expiry in the delegation chain. Approval does not restart that clock or override a hard limit; the agent must retry the identical request to execute it.
 - Prices and destinations come from the tool adapter, not claims supplied by the agent.
-- Each simulated action, budget update, and audit entry is saved in one SQLite transaction. They either all succeed or all roll back.
+- Each simulated effect, budget update, and audit entry is saved in one ledger transaction (SQLite by default, optionally PostgreSQL). They either all succeed or all roll back. This does not make external API effects atomic with the ledger.
 
-Built with **Python, FastAPI, and SQLite**, with an optional MCP bridge and opt-in Docker read-only tools. A reservation/outbox flow demonstrates crash recovery with a durable mock payment provider; no real-money processor is connected.
+Built with **Python, FastAPI, and SQLite**, with optional PostgreSQL storage, an [MCP bridge](docs/mcp.md), and opt-in Docker read-only tools. A reservation/outbox flow demonstrates crash recovery with a durable mock payment provider; no real-money processor is connected.
+
+The default intent evaluator is a deterministic, domain-specific heuristic. An optional
+[HTTPS semantic reviewer](docs/semantic.md) can tighten its verdict, but cannot relax
+the baseline or bypass hard policy. Evaluator failures require human review.
 
 ## Run locally
 
@@ -48,8 +52,8 @@ fixtures and simulated writes; they do not access the network or host filesystem
 ## Real read-only tools (local Docker)
 
 The optional [Docker backend](docs/sandbox-execution.md) adds workspace file reads,
-restricted SQLite SELECT queries, fixed diagnostic commands, and approved HTTPS
-GETs through a private egress proxy. Enable it explicitly with a separate `sandbox`
+restricted SQLite SELECT queries, fixed diagnostic commands, and HTTPS GETs to
+exact allowlisted documentation URLs through a private egress proxy. Enable it explicitly with a separate `sandbox`
 mission. Existing simulations and the public website keep their current behavior.
 Real filesystem writes remain disabled; the outbox milestone currently covers mock payments.
 
@@ -76,8 +80,9 @@ Tests cover budget races, delegation, approval replay, expiry, and rollback. The
 ## Evaluation and external recovery
 
 The [benchmark tools](benchmarks/README.md) include a 200-attack tool-output injection
-suite, isolated guard comparisons, held-out purpose expectations and writer-lock
-measurements. Live model runs require explicit opt-in and credentials; skipped runs
+suite plus 40 benign cases, isolated guard comparisons, held-out purpose
+expectations and writer-lock measurements. These benchmark cases and labels are
+machine-authored specification expectations, not independently validated ground truth. Live model runs require explicit opt-in and credentials; skipped runs
 are not model performance results. A separate durable loopback service exercises
 HTTP recovery under process death, retries and concurrent workers. This remains a
 controlled test integration, not a real payment connector.
